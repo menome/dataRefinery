@@ -1,0 +1,31 @@
+{
+  "name": "datarefinery",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Turns specifically formatted RMQ messages into neo4j graph updates",
+  "repository": "https://github.com/menome",
+  "license": "Commercial",
+  "dependencies": {
+    "forever": "latest",
+    "express": "latest",
+    "amqplib": "^0.5.1",
+    "body-parser": "^1.15.2",
+    "neo4j-driver": "latest",
+    "request":"latest",
+    "decypher": "^0.11.0",
+    "uuid": "latest"
+  },
+  "devDependencies": {
+    "mocha": "^2.5.3",
+    "chai": "^3.5.0",
+    "nodemon": "latest",
+    "supertest": "^3.0.0",
+    "mock-require": "^2.0.1"
+  },
+  "scripts": {
+    "start": "[ \"$NODE_ENV\" = \"production\" ] && npm run prod || npm run dev",
+    "dev": "node ./node_modules/nodemon/bin/nodemon.js app/app.js",
+    "prod": "./node_modules/forever/bin/forever --minUptime 5000 --spinSleepTime 1000 app/app.js",
+    "test": "./node_modules/mocha/bin/mocha -C test"
+  }
+}
