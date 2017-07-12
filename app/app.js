@@ -7,7 +7,7 @@ var express = require("express");
 var http = require('http');
 var port = process.env.PORT || 3000;
 var conf = require('./config');
-// var rabbitListener = require('./rabbitListener'); // For listening to AMQP messages
+var rabbitListener = require('./listener'); // For listening to AMQP messages
 
 function fileSyncService(testMode=false) {
   var app = express();
@@ -17,6 +17,9 @@ function fileSyncService(testMode=false) {
   app.get('/', function (req, res, next) {
     return res.send("This is a healthy Data Refinery Service");
   });
+
+  // Listen on the message bus.
+  rabbitListener.subscribe();
 
   return app;
 }

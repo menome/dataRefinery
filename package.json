@@ -8,6 +8,7 @@
   "dependencies": {
     "forever": "latest",
     "express": "latest",
+    "ajv": "^5.2.2",
     "amqplib": "^0.5.1",
     "body-parser": "^1.15.2",
     "neo4j-driver": "latest",

@@ -5,12 +5,9 @@ FROM node:7.1.0
 EXPOSE 80
 ENV PORT 80
 
-# Install stuff for text processing
-RUN apt-get update && apt-get install -y xpdf tesseract-ocr antiword imagemagick ghostscript
-
 # Commands will run in this directory
-RUN mkdir /srv/fileSyncService
-WORKDIR /srv/fileSyncService
+RUN mkdir /srv/app
+WORKDIR /srv/app
 
 # Add build file
 COPY ./package.json package.json
