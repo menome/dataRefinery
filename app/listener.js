@@ -54,7 +54,6 @@ function rabbitConnect() {
               log.info("Finished with message.")
               if (result) ch.ack(msg);
               else {
-                console.log("Nacking")
                 ch.nack(msg, false, false)
               }
             })

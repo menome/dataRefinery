@@ -1,8 +1,8 @@
 {
   "neo4j": {
-    "url": "bolt://neo4j",
+    "url": "bolt://localhost",
     "user": "neo4j",
-    "pass": "swordfish"
+    "pass": "graphPaper!"
   },
   "rabbit": {
     "url": "amqp://rabbitmq:rabbitmq@localhost:5672?heartbeat=3600",
