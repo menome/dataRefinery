@@ -15,7 +15,26 @@ This turns specifically formatted AMQP messages into neo4j graph updates.
   "Properties": {
     "Status":"active"
   },
-  "Connections": []
+  "Connections": [
+    {
+      "Name": "Menome Victoria",
+      "NodeType": "Office",
+      "RelType": "LocatedInOffice",
+      "ForwardRel": true,
+      "ConformedDimensions": {
+        "City": "Victoria"
+      }
+    },
+    {
+      "Name": "theLink",
+      "NodeType": "Project",
+      "RelType": "WorkedOnProject",
+      "ForwardRel": true,
+      "ConformedDimensions": {
+        "Code": "5"
+      }
+    }
+  ]
 }
 ```
 

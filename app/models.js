@@ -21,8 +21,36 @@ const messageSchema = {
     "Properties": {
       "type": "object"
     },
-    "Connections": {
-      "type": "array"
+    "Connections": { // Basically an array of the same things, minus second-level connections
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["Name","NodeType","RelType","ForwardRel","ConformedDimensions"],
+        "additionalProperties": false,
+        "properties": {
+          "Name": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_\\s]*$"
+          },
+          "NodeType": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_]*$"
+          },
+          "ForwardRel": { // True if we're going (node)-[]->(node2). False if (node)<-[]-(node2)
+            "type": "boolean"
+          },
+          "RelType": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_]*$"
+          },
+          "ConformedDimensions": {
+            "type": "object"
+          },
+          "Properties": {
+            "type": "object"
+          }
+        }
+      }
     },
     "Priority": {
       "type": "number",
