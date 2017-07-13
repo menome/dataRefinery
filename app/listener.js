@@ -15,7 +15,8 @@ var messageHandler = require('./messageHandler')
 
 var rabbitConnectInterval;
 module.exports = {
-  subscribe
+  subscribe,
+  handleMessage
 }
 
 // Get the validator ready.
@@ -71,12 +72,21 @@ function rabbitConnect() {
 
 // Handles a message. Message should be JSON in a binary blob.
 function handleMessage(msg) {
-  var parsed = JSON.parse(msg.content);
+  var parsed = {};
+
+  try {
+    parsed = JSON.parse(msg.content);
+  }
+  catch(ex) {
+    log.error("Malformed JSON in message");
+    return Promise.resolve(false);
+  }
+  
   var valid = validateMessage(parsed);
 
   // If the message is invalid, send back false so we nack it.
   if (!valid) {
-    console.log("Harvester message was malformed:", validateMessage.errors);
+    log.error("Harvester message was malformed:", validateMessage.errors);
     return Promise.resolve(false);
   }
 

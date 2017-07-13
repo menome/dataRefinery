@@ -67,5 +67,4 @@ module.exports = function(message) {
       console.log(err);
       return false;
     })
-  return Promise.resolve(true);
 }
