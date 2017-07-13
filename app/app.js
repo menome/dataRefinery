@@ -9,7 +9,7 @@ var port = process.env.PORT || 3000;
 var conf = require('./config');
 var rabbitListener = require('./listener'); // For listening to AMQP messages
 
-function fileSyncService(testMode=false) {
+function app(testMode=false) {
   var app = express();
   app.testMode = testMode;
 
@@ -29,10 +29,10 @@ function fileSyncService(testMode=false) {
 
 // If we're not being imported, just run our app.
 if (!module.parent) {
-  var app = fileSyncService();
+  var app = app();
   
   http.createServer(app).listen(port);
   console.log("Listening on " + port);
 }
 
-module.exports = fileSyncService;
+module.exports = app;
