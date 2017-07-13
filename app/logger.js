@@ -4,10 +4,11 @@
  * Logging wrapper.
  */
 module.exports = {
+  logging: true,
   info: function(msg, ...args) {
-    console.log("[INFO] "+msg, ...args);
+    if(this.logging) console.log("[INFO] "+msg, ...args);
   },
   error: function(msg, ...args) {
-    console.error("[ERROR] "+msg, ...args);
+    if(this.logging) console.error("[ERROR] "+msg, ...args);
   }
 }

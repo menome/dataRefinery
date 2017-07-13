@@ -32,18 +32,19 @@ function getMergeQuery(message) {
 
   // Build up another merge/set statement for each connection
   // TODO: Parameters should be subobjects in the main query params. This is not yet possible in neo4j.
-  message.Connections.forEach((itm,idx) => {
-    var nodeName = "node"+idx;
-    var newNodeStmt = "("+nodeName+":Card:"+itm.NodeType+" "+buildObjectStr(itm.ConformedDimensions)+")"
-    query.merge("(node)"+(itm.ForwardRel?"":"<")+"-[:"+itm.RelType+"]-"+(itm.ForwardRel?">":"")+newNodeStmt);
-    query.add("ON CREATE SET "+nodeName+".Uuid = {"+nodeName+"_newUuid}");
-    query.set(nodeName+" += {"+nodeName+"_nodeParams}");
+  if(Array.isArray(message.Connections))
+    message.Connections.forEach((itm,idx) => {
+      var nodeName = "node"+idx;
+      var newNodeStmt = "("+nodeName+":Card:"+itm.NodeType+" "+buildObjectStr(itm.ConformedDimensions)+")"
+      query.merge("(node)"+(itm.ForwardRel?"":"<")+"-[:"+itm.RelType+"]-"+(itm.ForwardRel?">":"")+newNodeStmt);
+      query.add("ON CREATE SET "+nodeName+".Uuid = {"+nodeName+"_newUuid}");
+      query.set(nodeName+" += {"+nodeName+"_nodeParams}");
 
-    var itmParams = Object.assign({},itm.Properties,itm.ConformedDimensions)
-    itmParams.Name = itm.Name;
-    query.param(nodeName+"_newUuid", db.genUuid());
-    query.param(nodeName+"_nodeParams", itmParams)
-  });
+      var itmParams = Object.assign({},itm.Properties,itm.ConformedDimensions)
+      itmParams.Name = itm.Name;
+      query.param(nodeName+"_newUuid", db.genUuid());
+      query.param(nodeName+"_nodeParams", itmParams)
+    });
 
   // Compile our top-level parameters.
   var compiledParams = Object.assign({},message.Properties,message.ConformedDimensions)
@@ -53,9 +54,7 @@ function getMergeQuery(message) {
   return query;
 }
 
-// Generates a CQL query from the validated message.
-// Runs the CQL query. Returns a promise with the result of the query.
-module.exports = function(message) {
+function handleMessage(message) {
   var query = getMergeQuery(message);
   return db.query(query.compile(),query.params())
     .then(function(result) {
@@ -67,4 +66,12 @@ module.exports = function(message) {
       console.log(err);
       return false;
     })
+}
+
+// Generates a CQL query from the validated message.
+// Runs the CQL query. Returns a promise with the result of the query.
+module.exports = {
+  handleMessage,
+  getMergeQuery,
+  buildObjectStr
 }

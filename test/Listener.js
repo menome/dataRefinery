@@ -3,7 +3,7 @@ var rabbitListener = require('../app/listener'); // For listening to AMQP messag
 
 var mock = require('mock-require');
 
-mock('./messageHandler', function(message) { return Promise.resolve(true) })
+mock('./messageHandler', {handleMessage: function(message) { return Promise.resolve(true) }} )
 
 var invalidJson = "{{notRight: true}}";
 var noSchemaJson = '{ "Name":21, "NodeType":"Employee", "Priority": 1, "ConformedDimensions": { "Email": "konrad.aust@menome.com", "EmployeeId": 12345 }, "Properties": { "Status":"active" }, "Connections": [ { "Name": "Menome Victoria", "NodeType": "Office", "RelType": "LocatedInOffice", "ForwardRel": true, "ConformedDimensions": { "City": "Victoria" } }, { "Name": "theLink", "NodeType": "Project", "RelType": "WorkedOnProject", "ForwardRel": true, "ConformedDimensions": { "Code": "5" } } ] }';

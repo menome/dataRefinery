@@ -90,5 +90,5 @@ function handleMessage(msg) {
     return Promise.resolve(false);
   }
 
-  return messageHandler(parsed);
+  return messageHandler.handleMessage(parsed);
 }
