@@ -6,7 +6,7 @@
  * Calls subroutines for updating the DB.
  */
 var conf = require('./config');
-var amqp = require('amqplib/callback_api');
+var amqp = require('amqplib');
 var log = require('./logger');
 var Ajv = require('ajv');
 var models = require('./models');
@@ -22,6 +22,7 @@ module.exports = {
 // Get the validator ready.
 var ajv = new Ajv(); // options can be passed, e.g. {allErrors: true} 
 var validateMessage = ajv.compile(models.messageSchema);
+var rabbitChannel;
 
 // Subscribes to the RabbitMQ 
 function subscribe() {
@@ -31,43 +32,45 @@ function subscribe() {
 
 function rabbitConnect() {
   log.info("Attempting to connect to RMQ.");
-  amqp.connect(conf.rabbit.url, function (err, conn) {
-    if (err) return log.error("Failed to connect to RMQ. Will retry: %s", err.message);
 
-    conn.createChannel(function (err, ch) {
-      if (err) return log.error("Failed to connect to RMQ. Will retry: %s", err.message);
-      ch.assertExchange(conf.rabbit.exchange, 'topic', {
-        durable: true
+  log.info("Attempting to connect to RMQ.");
+  amqp.connect(conf.rabbit.url)
+    .then(function(conn) {
+      log.info("Connected to RMQ");
+      return conn.createChannel();
+    })
+    .then(function(channel) {
+      log.info("Created channel")
+      clearInterval(rabbitConnectInterval); // Stop scheduling this task if it's finished.
+      rabbitChannel = channel;
+      channel.assertExchange(conf.rabbit.exchange, 'topic', {durable: true});
+      return channel.assertQueue('', {exclusive: true})
+    })
+    .then(function(q) {
+      log.info("Waiting for messages in %s on exchange '%s'", q.queue, conf.rabbit.exchange);
+      rabbitChannel.bindQueue(q.queue, conf.rabbit.exchange, conf.rabbit.routingKey);
+      clearInterval(rabbitConnectInterval); // Stop scheduling this task if it's finished.
+
+      rabbitChannel.consume(q.queue, function (msg) {
+        handleMessage(msg)
+          .then(function (result) {
+            log.info("Finished with message.")
+            if (result) rabbitChannel.ack(msg);
+            else {
+              rabbitChannel.nack(msg, false, false)
+            }
+          })
+          .catch(function (err) {
+            log.error(err);
+            rabbitChannel.nack(msg, false, false);
+          });
+      }, {
+        noAck: false
       });
-
-      ch.assertQueue('', {
-        exclusive: true
-      }, function (err, q) {
-        if (err) return log.error("Failed to connect to RMQ. Will retry: %s", err.message);
-
-        log.info("Waiting for messages in %s on exchange '%s'", q.queue, conf.rabbit.exchange);
-        ch.bindQueue(q.queue, conf.rabbit.exchange, conf.rabbit.routingKey);
-        clearInterval(rabbitConnectInterval); // Stop scheduling this task if it's finished.
-
-        ch.consume(q.queue, function (msg) {
-          handleMessage(msg)
-            .then(function (result) {
-              log.info("Finished with message.")
-              if (result) ch.ack(msg);
-              else {
-                ch.nack(msg, false, false)
-              }
-            })
-            .catch(function (err) {
-              log.error(err);
-              ch.nack(msg, false, false);
-            });
-        }, {
-          noAck: false
-        });
-      });
+    })
+    .catch((err) => {
+      log.error("Failed to connect to RMQ. Will retry: %s", err.message);
     });
-  });
 }
 
 // Handles a message. Message should be JSON in a binary blob.
