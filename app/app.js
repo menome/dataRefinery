@@ -5,7 +5,7 @@
  */
 var express = require("express");
 var http = require('http');
-var port = process.env.PORT || 3000;
+var port = process.env.PORT || 3001;
 var conf = require('./config');
 var rabbitListener = require('./listener'); // For listening to AMQP messages
 

@@ -36,9 +36,10 @@ function getMergeQuery(message) {
     message.Connections.forEach((itm,idx) => {
       var nodeName = "node"+idx;
       var newNodeStmt = "("+nodeName+":Card:"+itm.NodeType+" "+buildObjectStr(itm.ConformedDimensions)+")"
-      query.merge("(node)"+(itm.ForwardRel?"":"<")+"-[:"+itm.RelType+"]-"+(itm.ForwardRel?">":"")+newNodeStmt);
+      query.merge(newNodeStmt);
       query.add("ON CREATE SET "+nodeName+".Uuid = {"+nodeName+"_newUuid}");
       query.set(nodeName+" += {"+nodeName+"_nodeParams}");
+      query.merge("(node)"+(itm.ForwardRel?"":"<")+"-[:"+itm.RelType+"]-"+(itm.ForwardRel?">":"")+"("+nodeName+")")
 
       var itmParams = Object.assign({},itm.Properties,itm.ConformedDimensions)
       itmParams.Name = itm.Name;

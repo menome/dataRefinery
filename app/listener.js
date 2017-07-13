@@ -37,7 +37,7 @@ function rabbitConnect() {
     conn.createChannel(function (err, ch) {
       if (err) return log.error("Failed to connect to RMQ. Will retry: %s", err.message);
       ch.assertExchange(conf.rabbit.exchange, 'topic', {
-        durable: false
+        durable: true
       });
 
       ch.assertQueue('', {
