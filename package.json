@@ -10,17 +10,15 @@
     "express": "latest",
     "ajv": "^5.2.2",
     "amqplib": "^0.5.1",
-    "body-parser": "^1.15.2",
     "neo4j-driver": "latest",
     "request":"latest",
-    "decypher": "^0.11.0",
+    "decypher": "^0.13.0",
     "uuid": "latest"
   },
   "devDependencies": {
-    "mocha": "^2.5.3",
-    "chai": "^3.5.0",
+    "mocha": "^3.4.2",
+    "chai": "^4.1.0",
     "nodemon": "latest",
-    "supertest": "^3.0.0",
     "mock-require": "^2.0.1"
   },
   "scripts": {
