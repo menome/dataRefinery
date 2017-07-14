@@ -24,7 +24,7 @@ describe('Handle Message', function () {
     })
   });
 
-  it('Accepts JSON that does not conform to schema', function (done) {
+  it('Accepts JSON that does conform to schema', function (done) {
     rabbitListener.handleMessage({content: schemaConformJson}).then((result) => {
       assert.isTrue(result);
       done();

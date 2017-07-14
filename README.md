@@ -42,7 +42,7 @@ This turns specifically formatted AMQP messages into neo4j graph updates.
 
 The graph updates should be incremental. Because of this, queries generated rely heavily on merge statements.
 
-Merge statements require a 'conformed dimension' which is a property that can uniquely identify the node. For a user, that dimension may be their email or user ID. For a project, it may be the project number. Conformed dimensions should be unique across all systems.
+Merge statements require a 'conformed dimension' which is a property that can uniquely identify the node. For a user, that dimension may be their email or user ID. For a project, it may be the project number. Conformed dimensions should be unique and consistent across all systems.
 
 Messages can be given a 'priority.' This is an integer. Higher priority messages will overwrite existing data that was tagged with a lower priority.
 

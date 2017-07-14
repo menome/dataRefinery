@@ -78,7 +78,7 @@ describe('GetMergeQuery', function() {
   })
 
   it('Generates a merge cql query with parameters for a node with connections', function() {
-    var expectedQueryStr = 'MERGE (node:Card:Employee {Email: "konrad.aust@menome.com",EmployeeId: 12345})\nON CREATE SET node.Uuid = {newUuid}\nSET node += {nodeParams}\nMERGE (node)-[:LocatedInOffice]->(node0:Card:Office {City: "Victoria"})\nON CREATE SET node0.Uuid = {node0_newUuid}\nSET node0 += {node0_nodeParams}\nMERGE (node)-[:WorkedOnProject]->(node1:Card:Project {Code: "5"})\nON CREATE SET node1.Uuid = {node1_newUuid}\nSET node1 += {node1_nodeParams};'
+    var expectedQueryStr = 'MERGE(node:Card:Employee{Email:"konrad.aust@menome.com",EmployeeId:12345})ONCREATESETnode.Uuid={newUuid}SETnode+={nodeParams}MERGE(node0:Card:Office{City:"Victoria"})ONCREATESETnode0.Uuid={node0_newUuid}SETnode0+={node0_nodeParams}MERGE(node)-[:LocatedInOffice]->(node0)MERGE(node1:Card:Project{Code:"5"})ONCREATESETnode1.Uuid={node1_newUuid}SETnode1+={node1_nodeParams}MERGE(node)-[:WorkedOnProject]->(node1);';
     var expectedParams = {
       node0_nodeParams: { City: 'Victoria', Name: 'Menome Victoria' },
       node1_nodeParams: { Code: '5', Name: 'theLink' },
@@ -92,7 +92,8 @@ describe('GetMergeQuery', function() {
     }
 
     var mergeQuery = messageHandler.getMergeQuery(connectedMsg);
-    assert.equal(expectedQueryStr, mergeQuery.compile());
+    var actualQueryStr = mergeQuery.compile().replace(/\s/g,'')
+    assert.equal(expectedQueryStr, actualQueryStr);
     var agnosticParams = mergeQuery.params()
     delete agnosticParams.newUuid;
     delete agnosticParams.node0_newUuid;
