@@ -23,6 +23,7 @@ module.exports = {
 var ajv = new Ajv(); // options can be passed, e.g. {allErrors: true} 
 var validateMessage = ajv.compile(models.messageSchema);
 var rabbitChannel;
+var jobCount = 0;
 
 // Subscribes to the RabbitMQ 
 function subscribe() {
@@ -36,6 +37,12 @@ function rabbitConnect() {
   log.info("Attempting to connect to RMQ.");
   amqp.connect(conf.rabbit.url)
     .then(function(conn) {
+      conn.on('error', function(err) {
+        conn.close();
+        jobCount = 0;
+        rabbitChannel = null;
+        rabbitConnectInterval = setInterval(rabbitConnect, 5000);
+      });
       log.info("Connected to RMQ");
       return conn.createChannel();
     })
@@ -51,22 +58,29 @@ function rabbitConnect() {
       rabbitChannel.bindQueue(q.queue, conf.rabbit.exchange, conf.rabbit.routingKey);
       clearInterval(rabbitConnectInterval); // Stop scheduling this task if it's finished.
 
-      rabbitChannel.consume(q.queue, function (msg) {
-        handleMessage(msg)
-          .then(function (result) {
-            log.info("Finished with message.")
-            if (result) rabbitChannel.ack(msg);
-            else {
-              rabbitChannel.nack(msg, false, false)
-            }
-          })
-          .catch(function (err) {
-            log.error(err);
-            rabbitChannel.nack(msg, false, false);
-          });
-      }, {
-        noAck: false
-      });
+        rabbitChannel.consume(q.queue, function (msg) {
+          if(jobCount < conf.maxConnections) {
+            jobCount += 1;
+            handleMessage(msg)
+              .then(function (result) {
+                jobCount -= 1;
+                log.info("Finished with message.")
+                if (result) rabbitChannel.ack(msg);
+                else {
+                  rabbitChannel.nack(msg, false, false)
+                }
+              })
+              .catch(function (err) {
+                jobCount -= 1;
+                log.error(err);
+                rabbitChannel.nack(msg, false, false);
+              });
+          } else {
+            rabbitChannel.nack(msg, false, true);
+          }
+        }, {
+          noAck: false
+        });
     })
     .catch((err) => {
       log.error("Failed to connect to RMQ. Will retry: %s", err.message);

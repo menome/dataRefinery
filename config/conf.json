@@ -8,5 +8,6 @@
     "url": "amqp://rabbitmq:rabbitmq@localhost:5672?heartbeat=3600",
     "routingKey": "syncevents.harvester.updates",
     "exchange": "syncevents"
-  }
+  },
+  "maxConnections": 5
 }
