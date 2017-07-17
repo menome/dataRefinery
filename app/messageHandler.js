@@ -50,6 +50,7 @@ function getMergeQuery(message) {
   // Compile our top-level parameters.
   var compiledParams = Object.assign({},message.Properties,message.ConformedDimensions)
   compiledParams.Name = message.Name;
+  compiledParams.SourceSystem = message.SourceSystem ? message.SourceSystem : undefined;
   query.params({nodeParams: compiledParams, newUuid: db.genUuid()});
 
   return query;
@@ -59,12 +60,12 @@ function handleMessage(message) {
   var query = getMergeQuery(message);
   return db.query(query.compile(),query.params())
     .then(function(result) {
-      log.info("Query successful");
+      log.info("Success for",message.NodeType,"message:",message.Name)
       return true;
     })
     .catch(function(err) {
-      log.error("Query failed");
-      console.log(err);
+      log.error("Failure for",message.NodeType,"message:",message.Name);
+      log.error(err.toString());
       return false;
     })
 }

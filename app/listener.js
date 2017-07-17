@@ -64,7 +64,6 @@ function rabbitConnect() {
             handleMessage(msg)
               .then(function (result) {
                 jobCount -= 1;
-                log.info("Finished with message.")
                 if (result) rabbitChannel.ack(msg);
                 else {
                   rabbitChannel.nack(msg, false, false)
@@ -104,6 +103,7 @@ function handleMessage(msg) {
   // If the message is invalid, send back false so we nack it.
   if (!valid) {
     log.error("Harvester message was malformed:", validateMessage.errors);
+    console.log(parsed.Name)
     return Promise.resolve(false);
   }
 

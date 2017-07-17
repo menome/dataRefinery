@@ -8,12 +8,15 @@ const messageSchema = {
   "additionalProperties": false,
   "properties": {
     "Name": {
-      "type": "string",
-      "pattern": "^[a-zA-Z0-9_\\s]*$"
+      "type": "string"
     },
     "NodeType": {
       "type": "string",
       "pattern": "^[a-zA-Z0-9_]*$"
+    },
+    "SourceSystem": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_\\s\.\'&]*$"
     },
     "ConformedDimensions": {
       "type": "object"
@@ -30,7 +33,6 @@ const messageSchema = {
         "properties": {
           "Name": {
             "type": "string",
-            "pattern": "^[a-zA-Z0-9_\\s]*$"
           },
           "NodeType": {
             "type": "string",
