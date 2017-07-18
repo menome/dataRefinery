@@ -9,5 +9,5 @@
     "routingKey": "syncevents.harvester.updates",
     "exchange": "syncevents"
   },
-  "maxConnections": 5
+  "maxConcurrentQueries": 5
 }

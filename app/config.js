@@ -17,7 +17,7 @@ var defaults = {
     routingKey: 'bucketevents.all.minio',
     exchange: 'bucketevents'
   },
-  maxConnections: 5
+  maxConcurrentQueries: 5
 }
 
 // Merged external conf and default conf, prioritizing external conf.

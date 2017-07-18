@@ -75,6 +75,18 @@ RABBIT_URL=the URL of the RMQ server. eg. 'amqp://rabbitmq:rabbitmq@rabbit:5672?
     "url": "amqp://rabbitmq:rabbitmq@rabbit:5672?heartbeat=3600",
     "routingKey": "syncevents.harvester.updates",
     "exchange": "syncevents"
-  }
+  },
+  "maxConcurrentQueries": 5
 }
 ```
+
+## Possible Concerns
+There is currently no way to handle deletion of nodes from source systems. We can either:
+  * Create a new message schema that allows for deletion
+  * Timestamp nodes on every import, so we know that certain nodes only existed prior to a certain date.
+
+There is also currently no way to prevent systems with conflicting parameters from interfering with data. For example, if two different systems store a 'lastname' property for a person, and that person's last name changes, then each sync, the lastname that gets put into the graph for that person is whichever sync message was parsed later.
+  * One could timestamp the messages
+  * Assign a priority to messages, eg. The accounting system could be a lower priority than the HR database for employee parameters. This gets a little confusing in terms of managing priority and state, especially if we want to do it on a per-property basis.
+
+I'm open to solutions for either of these problems.
