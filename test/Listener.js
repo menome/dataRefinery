@@ -1,3 +1,6 @@
+// Turn off logging for tests.
+var logger = require('../app/logger');
+logger.logging = false;
 var assert = require('chai').assert;
 var rabbitListener = require('../app/listener'); // For listening to AMQP messages
 

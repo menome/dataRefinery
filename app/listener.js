@@ -94,7 +94,6 @@ function handleMessage(msg) {
   // If the message is invalid, send back false so we nack it.
   if (!valid) {
     log.error("Harvester message was malformed:", validateMessage.errors);
-    console.log(parsed.Name)
     return Promise.resolve(false);
   }
 
