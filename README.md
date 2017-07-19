@@ -89,7 +89,8 @@ There is also currently no way to prevent systems with conflicting parameters fr
   * One could timestamp the messages
   * Assign a priority to messages, eg. The accounting system could be a lower priority than the HR database for employee parameters. This gets a little confusing in terms of managing priority and state, especially if we want to do it on a per-property basis.
 
-Seems like there's also a race condition when merging. If two statements merge on the same node, two nodes are created. This is particularly a problem when we're batch processing a bunch of nodes that self-reference. (eg. Project isChildOf Project)
-  * Could potentially just run cleanup passes on the DB periodically, but I don't like this. It adds state where there should be none.
+I'm open to solutions for either of these problems.
 
-I'm open to solutions for any of these problems.
+Seems like there's also a race condition when merging. If two statements merge on the same node, two nodes are created. As a solution, by default we only process one query at a time. Since the DB is acid compliant, this allows us to avoid the problem at the cost of a small slowdown on the sync.
+
+In the future Neo4j has hinted that they may fix this, but for now we'll have to stick to one query at a time.
