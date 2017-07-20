@@ -50,7 +50,7 @@ function rabbitConnect() {
       rabbitChannel = channel;
       rabbitChannel.prefetch(conf.maxConcurrentQueries); // Set prefetch count.
       channel.assertExchange(conf.rabbit.exchange, 'topic', {durable: true});
-      return channel.assertQueue('', {exclusive: true})
+      return channel.assertQueue('refineryQueue')
     })
     .then(function(q) {
       log.info("Waiting for messages in %s on exchange '%s'", q.queue, conf.rabbit.exchange);
