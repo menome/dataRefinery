@@ -14,8 +14,8 @@ var defaults = {
   rabbit: {
     enable: true,
     url: 'amqp://rabbitmq:rabbitmq@rabbit:5672?heartbeat=3600',
-    routingKey: 'bucketevents.all.minio',
-    exchange: 'bucketevents'
+    routingKey: 'syncevents.harvester.updates',
+    exchange: 'syncevents'
   },
   maxConcurrentQueries: 1
 }
