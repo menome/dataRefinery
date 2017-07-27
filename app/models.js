@@ -28,7 +28,7 @@ const messageSchema = {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["NodeType","RelType","ForwardRel","ConformedDimensions","RelProps"],
+        "required": ["NodeType","RelType","ForwardRel","ConformedDimensions"],
         "additionalProperties": false,
         "properties": {
           "Name": {

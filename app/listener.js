@@ -37,6 +37,7 @@ function rabbitConnect() {
   amqp.connect(conf.rabbit.url)
     .then(function(conn) {
       conn.on('error', function(err) {
+        log.error(err);
         conn.close();
         rabbitChannel = null;
         rabbitConnectInterval = setInterval(rabbitConnect, 5000);

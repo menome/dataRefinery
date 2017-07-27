@@ -39,12 +39,14 @@ function getMergeQuery(message) {
       query.merge(newNodeStmt);
       query.add("ON CREATE SET "+nodeName+".Uuid = {"+nodeName+"_newUuid}");
       query.set(nodeName+" += {"+nodeName+"_nodeParams}");
-      query.merge("(node)"+(itm.ForwardRel?"":"<")+"-[:"+itm.RelType+"]-"+(itm.ForwardRel?">":"")+"("+nodeName+")")
+      query.merge("(node)"+(itm.ForwardRel?"":"<")+"-["+nodeName+"_rel:"+itm.RelType+"]-"+(itm.ForwardRel?">":"")+"("+nodeName+")")
+      query.set(nodeName+"_rel += {"+nodeName+"_relProps}")
 
       var itmParams = Object.assign({},itm.Properties,itm.ConformedDimensions)
       itmParams.Name = itm.Name;
       query.param(nodeName+"_newUuid", db.genUuid());
-      query.param(nodeName+"_nodeParams", itmParams)
+      query.param(nodeName+"_nodeParams", itmParams);
+      query.param(nodeName+"_relProps", itm.RelProps ? itm.RelProps : {})
     });
 
   // Compile our top-level parameters.
@@ -59,6 +61,7 @@ function getMergeQuery(message) {
 
 function handleMessage(message) {
   var query = getMergeQuery(message);
+
   return db.query(query.compile(),query.params())
     .then(function(result) {
       log.info("Success for",message.NodeType,"message:",message.Name)

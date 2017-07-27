@@ -5,7 +5,7 @@
     "pass": "graphPaper!"
   },
   "rabbit": {
-    "url": "amqp://rabbitmq:rabbitmq@rabbit:5672?heartbeat=3600",
+    "url": "amqp://rabbitmq:rabbitmq@localhost:5672?heartbeat=3600",
     "routingKey": "syncevents.harvester.updates",
     "exchange": "syncevents"
   },
