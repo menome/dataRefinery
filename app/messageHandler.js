@@ -50,6 +50,7 @@ function getMergeQuery(message) {
   // Compile our top-level parameters.
   var compiledParams = Object.assign({},message.Properties,message.ConformedDimensions)
   compiledParams.Name = message.Name;
+  compiledParams.AddedDate = new Date().toJSON();
   compiledParams.SourceSystem = message.SourceSystem ? message.SourceSystem : undefined;
   query.params({nodeParams: compiledParams, newUuid: db.genUuid()});
 
