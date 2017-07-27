@@ -28,7 +28,7 @@ const messageSchema = {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["NodeType","RelType","ForwardRel","ConformedDimensions"],
+        "required": ["NodeType","RelType","ForwardRel","ConformedDimensions","RelProps"],
         "additionalProperties": false,
         "properties": {
           "Name": {
@@ -50,8 +50,12 @@ const messageSchema = {
           },
           "Properties": {
             "type": "object"
+          },
+          "RelProps": {
+            "type": "object"
           }
         }
+
       }
     },
     "Priority": {
