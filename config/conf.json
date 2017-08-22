@@ -1,6 +1,6 @@
 {
   "neo4j": {
-    "url": "bolt://10.2.200.128",
+    "url": "bolt://localhost",
     "user": "neo4j",
     "pass": "graphPaper!"
   },

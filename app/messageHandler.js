@@ -23,8 +23,9 @@ function buildObjectStr(obj) {
 
 function getMergeQuery(message) {
   var query = new Query();
-  var mergeStmt = "(node:Card:"+message.NodeType+" ";
-  mergeStmt += buildObjectStr(message.ConformedDimensions) + ")";
+  var objectStr = buildObjectStr(message.ConformedDimensions);
+  if(objectStr === "{}") return false; // Don't run the query if our conformedDimensions is too small.
+  var mergeStmt = "(node:Card:"+message.NodeType+" " + objectStr + ")";
   query.merge(mergeStmt);
 
   query.add("ON CREATE SET node.Uuid = {newUuid}");
@@ -61,6 +62,7 @@ function getMergeQuery(message) {
 
 function handleMessage(message) {
   var query = getMergeQuery(message);
+  if(!query) return Promise.reject("Bad query from message.");
 
   return db.query(query.compile(),query.params())
     .then(function(result) {

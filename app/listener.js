@@ -32,8 +32,6 @@ function subscribe() {
 
 function rabbitConnect() {
   log.info("Attempting to connect to RMQ.");
-
-  log.info("Attempting to connect to RMQ.");
   amqp.connect(conf.rabbit.url)
     .then(function(conn) {
       conn.on('error', function(err) {
@@ -98,5 +96,5 @@ function handleMessage(msg) {
     return Promise.resolve(false);
   }
 
-  return messageHandler.handleMessage(parsed);
+  return messageHandler.handleMessage(parsed)
 }

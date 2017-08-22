@@ -19,7 +19,8 @@ const messageSchema = {
       "pattern": "^[a-zA-Z0-9_\\s\.\'&]*$"
     },
     "ConformedDimensions": {
-      "type": "object"
+      "type": "object",
+      "minProperties": 1,
     },
     "Properties": {
       "type": "object"
@@ -46,7 +47,8 @@ const messageSchema = {
             "pattern": "^[a-zA-Z0-9_]*$"
           },
           "ConformedDimensions": {
-            "type": "object"
+            "type": "object",
+            "minProperties": 1
           },
           "Properties": {
             "type": "object"
