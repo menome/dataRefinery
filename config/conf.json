@@ -6,7 +6,7 @@
   },
   "rabbit": {
     "url": "amqp://rabbitmq:rabbitmq@localhost:5672?heartbeat=3600",
-    "routingKey": "syncevents.harvester.updates",
+    "routingKey": "syncevents.harvester.updates.*",
     "exchange": "syncevents"
   },
   "maxConcurrentQueries": 1

@@ -14,7 +14,7 @@ var defaults = {
   rabbit: {
     enable: true,
     url: 'amqp://rabbitmq:rabbitmq@rabbit:5672?heartbeat=3600',
-    routingKey: 'syncevents.harvester.updates',
+    routingKey: 'syncevents.harvester.updates.*',
     exchange: 'syncevents'
   },
   maxConcurrentQueries: 1
