@@ -38,7 +38,7 @@ function getMergeQuery(message) {
       var nodeName = "node"+idx;
       var newNodeStmt = "("+nodeName+":Card:"+itm.NodeType+" "+buildObjectStr(itm.ConformedDimensions)+")"
       query.merge(newNodeStmt);
-      query.add("ON CREATE SET "+nodeName+".Uuid = {"+nodeName+"_newUuid}");
+      query.add("ON CREATE SET "+nodeName+".Uuid = {"+nodeName+"_newUuid}, "+nodeName+".PendingMerge = true");
       query.set(nodeName+" += {"+nodeName+"_nodeParams}");
       query.merge("(node)"+(itm.ForwardRel?"":"<")+"-["+nodeName+"_rel:"+itm.RelType+"]-"+(itm.ForwardRel?">":"")+"("+nodeName+")")
       query.set(nodeName+"_rel += {"+nodeName+"_relProps}")
@@ -53,6 +53,7 @@ function getMergeQuery(message) {
   // Compile our top-level parameters.
   var compiledParams = Object.assign({},message.Properties,message.ConformedDimensions)
   compiledParams.Name = message.Name;
+  compiledParams.PendingMerge = false;
   compiledParams.AddedDate = new Date().toJSON();
   compiledParams.SourceSystem = message.SourceSystem ? message.SourceSystem : undefined;
   query.params({nodeParams: compiledParams, newUuid: db.genUuid()});
