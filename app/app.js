@@ -3,36 +3,24 @@
  * 
  * A microservice that takes specifically formatted JSON messages and turns them into graph updates.
  */
-var express = require("express");
-var http = require('http');
-var port = process.env.PORT || 3001;
-var conf = require('./config');
-var rabbitListener = require('./listener'); // For listening to AMQP messages
+"use strict";
+var bot = require('@menome/botframework')
+var messageHandler = require('./messageHandler');
+var config = require('./config');
 
-function app(testMode=false) {
-  var app = express();
-  app.testMode = testMode;
+// We only need to do this once. Bot is a singleton.
+bot.configure({
+  name: "theLink Data Refinery Service",
+  desc: "Converts sync messages into graph updates.",
+  logging: config.get('logging'),
+  port: config.get('port'),
+  rabbit: config.get('rabbit'),
+  neo4j: config.get('neo4j')
+});
 
-  // An echo endpoint.
-  app.get('/', function (req, res, next) {
-    return res.send("This is a healthy Data Refinery Service");
-  });
+// Listen on the Rabbit bus.
+bot.rabbitSubscribe('refineryQueue',messageHandler.handleMessage,"harvesterMessage");
 
-  // Listen on the message bus.
-  rabbitListener.subscribe();
-
-  return app;
-}
-
-///////////////
-// Start the App
-
-// If we're not being imported, just run our app.
-if (!module.parent) {
-  var app = app();
-  
-  http.createServer(app).listen(port);
-  console.log("Listening on " + port);
-}
-
-module.exports = app;
+// Start the bot.
+bot.start();
+bot.changeState({state: "idle"})

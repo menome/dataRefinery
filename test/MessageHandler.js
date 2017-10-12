@@ -1,8 +1,5 @@
 var assert = require('chai').assert;
 var messageHandler = require('../app/messageHandler');
-// Turn off logging for tests.
-var logger = require('../app/logger');
-logger.logging = false;
 
 var connectedMsg = {
   "Name":"Konrad Aust",
@@ -66,7 +63,8 @@ describe('GetMergeQuery', function() {
         Status: 'active',
         Email: 'konrad.aust@menome.com',
         EmployeeId: 12345,
-        Name: 'Konrad Aust'
+        Name: 'Konrad Aust',
+        PendingMerge: false
       }
     }
 
@@ -74,16 +72,20 @@ describe('GetMergeQuery', function() {
     assert.equal(expectedQueryStr, mergeQuery.compile());
     var agnosticParams = mergeQuery.params()
     delete agnosticParams.newUuid;
-    assert.equal(JSON.stringify(expectedParams), JSON.stringify(agnosticParams));
+    // assert.equal(JSON.stringify(expectedParams), JSON.stringify(agnosticParams));
+    assert.equal(expectedParams.Status, agnosticParams.Status);
+    assert.equal(expectedParams.Email, agnosticParams.Email);
+    assert.equal(expectedParams.EmployeeId, agnosticParams.EmployeeId);
+    assert.equal(expectedParams.Name, agnosticParams.Name);
+    assert.equal(expectedParams.PendingMerge, agnosticParams.PendingMerge);
   })
 
   it('Generates a merge cql query with parameters for a node with connections', function() {
-    var expectedQueryStr = 'MERGE(node:Card:Employee{Email:"konrad.aust@menome.com",EmployeeId:12345})ONCREATESETnode.Uuid={newUuid}SETnode+={nodeParams}MERGE(node0:Card:Office{City:"Victoria"})ONCREATESETnode0.Uuid={node0_newUuid}SETnode0+={node0_nodeParams}MERGE(node)-[:LocatedInOffice]->(node0)MERGE(node1:Card:Project{Code:"5"})ONCREATESETnode1.Uuid={node1_newUuid}SETnode1+={node1_nodeParams}MERGE(node)-[:WorkedOnProject]->(node1);';
+    var expectedQueryStr = 'MERGE(node:Card:Employee{Email:"konrad.aust@menome.com",EmployeeId:12345})ONCREATESETnode.Uuid={newUuid}SETnode+={nodeParams}MERGE(node0:Card:Office{City:"Victoria"})ONCREATESETnode0.Uuid={node0_newUuid},node0.PendingMerge=trueSETnode0+={node0_nodeParams}MERGE(node)-[node0_rel:LocatedInOffice]->(node0)SETnode0_rel+={node0_relProps}MERGE(node1:Card:Project{Code:"5"})ONCREATESETnode1.Uuid={node1_newUuid},node1.PendingMerge=trueSETnode1+={node1_nodeParams}MERGE(node)-[node1_rel:WorkedOnProject]->(node1)SETnode1_rel+={node1_relProps};'
     var expectedParams = {
       node0_nodeParams: { City: 'Victoria', Name: 'Menome Victoria' },
       node1_nodeParams: { Code: '5', Name: 'theLink' },
-      nodeParams:
-      {
+      nodeParams: {
         Status: 'active',
         Email: 'konrad.aust@menome.com',
         EmployeeId: 12345,
@@ -98,6 +100,11 @@ describe('GetMergeQuery', function() {
     delete agnosticParams.newUuid;
     delete agnosticParams.node0_newUuid;
     delete agnosticParams.node1_newUuid;
-    assert.equal(JSON.stringify(expectedParams), JSON.stringify(agnosticParams));
+    assert.equal(JSON.stringify(expectedParams.node0_nodeParams), JSON.stringify(agnosticParams.node0_nodeParams));
+    assert.equal(JSON.stringify(expectedParams.node1_nodeParams), JSON.stringify(agnosticParams.node1_nodeParams));
+    assert.equal(expectedParams.nodeParams.Status, agnosticParams.nodeParams.Status);
+    assert.equal(expectedParams.nodeParams.Email, agnosticParams.nodeParams.Email);
+    assert.equal(expectedParams.nodeParams.EmployeeId, agnosticParams.nodeParams.EmployeeId);
+    assert.equal(expectedParams.nodeParams.Name, agnosticParams.nodeParams.Name);
   })
 });

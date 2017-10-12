@@ -1,13 +1,17 @@
 {
+  "port": 3005,
   "neo4j": {
+    "enable": true,
     "url": "bolt://localhost",
     "user": "neo4j",
     "pass": "graphPaper!"
   },
   "rabbit": {
+    "enable": true,
     "url": "amqp://rabbitmq:rabbitmq@localhost:5672?heartbeat=3600",
     "routingKey": "syncevents.harvester.updates.*",
-    "exchange": "syncevents"
-  },
-  "maxConcurrentQueries": 1
+    "exchange": "syncevents",
+    "exchangeType": "topic",
+    "prefetch": 1
+  }
 }

@@ -6,20 +6,22 @@
   "repository": "https://github.com/menome",
   "license": "Commercial",
   "dependencies": {
-    "forever": "latest",
-    "express": "latest",
-    "ajv": "^5.2.2",
+    "@menome/botframework": "^1.0.4",
+    "ajv": "^5.2.3",
     "amqplib": "^0.5.1",
-    "neo4j-driver": "latest",
-    "request":"latest",
+    "convict": "latest",
     "decypher": "^0.13.0",
+    "express": "^4.16.2",
+    "forever": "latest",
+    "neo4j-driver": "^1.4.1",
+    "request": "^2.83.0",
     "uuid": "latest"
   },
   "devDependencies": {
-    "mocha": "^3.4.2",
-    "chai": "^4.1.0",
-    "nodemon": "latest",
-    "mock-require": "^2.0.1"
+    "chai": "^4.1.2",
+    "mocha": "^3.5.3",
+    "mock-require": "^2.0.1",
+    "nodemon": "^1.12.1"
   },
   "scripts": {
     "start": "[ \"$NODE_ENV\" = \"production\" ] && npm run prod || npm run dev",

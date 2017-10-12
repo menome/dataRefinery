@@ -3,8 +3,7 @@
  *
  * Handles parsed/verified messages for DB updates.
  */
-var db = require("./database");
-var log = require("./logger");
+var bot = require('@menome/botframework')
 var Query = require('decypher').Query;
 
 // This is like JSON.stringify, except property keys are printed without quotes around them
@@ -45,7 +44,7 @@ function getMergeQuery(message) {
 
       var itmParams = Object.assign({},itm.Properties,itm.ConformedDimensions)
       itmParams.Name = itm.Name;
-      query.param(nodeName+"_newUuid", db.genUuid());
+      query.param(nodeName+"_newUuid", bot.genUuid());
       query.param(nodeName+"_nodeParams", itmParams);
       query.param(nodeName+"_relProps", itm.RelProps ? itm.RelProps : {})
     });
@@ -56,23 +55,26 @@ function getMergeQuery(message) {
   compiledParams.PendingMerge = false;
   compiledParams.AddedDate = new Date().toJSON();
   compiledParams.SourceSystem = message.SourceSystem ? message.SourceSystem : undefined;
-  query.params({nodeParams: compiledParams, newUuid: db.genUuid()});
+  query.params({nodeParams: compiledParams, newUuid: bot.genUuid()});
 
   return query;
 }
 
 function handleMessage(message) {
+  bot.changeState({state: "working"})
   var query = getMergeQuery(message);
   if(!query) return Promise.reject("Bad query from message.");
 
-  return db.query(query.compile(),query.params())
+  return bot.query(query.compile(),query.params())
     .then(function(result) {
-      log.info("Success for",message.NodeType,"message:",message.Name)
+      bot.logger.info("Success for",message.NodeType,"message:",message.Name)
+      bot.changeState({state: "idle"}) //TODO: Maybe this is a little premature. Might result in a 'false idle' state.
       return true;
     })
     .catch(function(err) {
-      log.error("Failure for",message.NodeType,"message:",message.Name);
-      log.error(err.toString());
+      bot.logger.error("Failure for",message.NodeType,"message:",message.Name);
+      bot.logger.error(err.toString());
+      bot.changeState({state: "error",message: err.toString()})
       return false;
     })
 }
