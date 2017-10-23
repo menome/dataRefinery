@@ -67,8 +67,13 @@ describe('GetMergeQuery', function() {
         PendingMerge: false
       }
     }
+    var queryProps = { // If we don't encounter a node to merge with, this is our initial priority info.
+      SourceSystems: ["TestSystem"],
+      SourceSystemPriorities: [1],
+      Properties: connectionlessMsg.Properties
+    }
 
-    var mergeQuery = messageHandler.getMergeQuery(connectionlessMsg);
+    var mergeQuery = messageHandler.getMergeQuery(connectionlessMsg,queryProps);
     assert.equal(expectedQueryStr, mergeQuery.compile());
     var agnosticParams = mergeQuery.params()
     delete agnosticParams.newUuid;
@@ -93,7 +98,13 @@ describe('GetMergeQuery', function() {
       }
     }
 
-    var mergeQuery = messageHandler.getMergeQuery(connectedMsg);
+    var queryProps = { // If we don't encounter a node to merge with, this is our initial priority info.
+      SourceSystems: ["TestSystem"],
+      SourceSystemPriorities: [1],
+      Properties: connectedMsg.Properties
+    }
+
+    var mergeQuery = messageHandler.getMergeQuery(connectedMsg, queryProps);
     var actualQueryStr = mergeQuery.compile().replace(/\s/g,'')
     assert.equal(expectedQueryStr, actualQueryStr);
     var agnosticParams = mergeQuery.params()

@@ -20,10 +20,10 @@ function buildObjectStr(obj) {
   return '{' + paramStrings.join(',') + '}';
 }
 
-function getMergeQuery(message) {
+function getMergeQuery(message,queryProps) {
   var query = new Query();
   var objectStr = buildObjectStr(message.ConformedDimensions);
-  if(objectStr === "{}") return false; // Don't run the query if our conformedDimensions is too small.
+  if(objectStr === "{}") return false; // Don't run the query if our conformedDimensions is too small. (Should be caught in the schema. This is just paranoia.)
   var mergeStmt = "(node:Card:"+message.NodeType+" " + objectStr + ")";
   query.merge(mergeStmt);
 
@@ -32,7 +32,7 @@ function getMergeQuery(message) {
 
   // Build up another merge/set statement for each connection
   // TODO: Parameters should be subobjects in the main query params. This is not yet possible in neo4j.
-  if(Array.isArray(message.Connections))
+  if(Array.isArray(message.Connections)) {
     message.Connections.forEach((itm,idx) => {
       var nodeName = "node"+idx;
       var newNodeStmt = "("+nodeName+":Card:"+itm.NodeType+" "+buildObjectStr(itm.ConformedDimensions)+")"
@@ -48,35 +48,93 @@ function getMergeQuery(message) {
       query.param(nodeName+"_nodeParams", itmParams);
       query.param(nodeName+"_relProps", itm.RelProps ? itm.RelProps : {})
     });
+  }
 
   // Compile our top-level parameters.
-  var compiledParams = Object.assign({},message.Properties,message.ConformedDimensions)
+  var compiledParams = Object.assign({},queryProps.Properties,message.ConformedDimensions)
   compiledParams.Name = message.Name;
   compiledParams.PendingMerge = false;
   compiledParams.AddedDate = new Date().toJSON();
-  compiledParams.SourceSystem = message.SourceSystem ? message.SourceSystem : undefined;
+  compiledParams.SourceSystems = queryProps.SourceSystems ? queryProps.SourceSystems : undefined;
+  compiledParams.SourceSystemPriorities = queryProps.SourceSystemPriorities ? queryProps.SourceSystemPriorities : undefined;
+
+  if(message.SourceSystem)
+    compiledParams["SourceSystemProps_"+message.SourceSystem] = Object.keys(queryProps.Properties)
+
   query.params({nodeParams: compiledParams, newUuid: bot.genUuid()});
 
   return query;
 }
 
+// Check before merging. This is for priority checking.
+function checkTarget(message) {
+  // If we don't have a source system or a priority just go for it.
+  if(!message.SourceSystem || !message.Priority) return Promise.resolve({});
+  
+  var retVal = { // If we don't encounter a node to merge with, this is our initial priority info.
+    SourceSystems: [message.SourceSystem],
+    SourceSystemPriorities: [message.Priority],
+    Properties: message.Properties
+  }
+
+  var query = new Query();
+  var objectStr = buildObjectStr(message.ConformedDimensions);
+  if(objectStr === "{}") return Promise.resolve({});; // Don't run the query if our conformedDimensions is too small. (Should be caught in the schema. This is just paranoia.)
+  query.match("(node:Card:"+message.NodeType+" "+objectStr+")")
+  query.return("node")
+
+  return bot.query(query.compile(), query.params()).then((result) => {
+    if(result.records.length < 1) return retVal;
+
+    var SourceSystems = result.records[0].get('node').properties.SourceSystems;
+    var SourceSystemPriorities = result.records[0].get('node').properties.SourceSystemPriorities;
+
+    if(!SourceSystems || !SourceSystemPriorities || SourceSystemPriorities.length !== SourceSystems.length) return retVal;
+
+    // If this source system is already in the list, find it. Add our system if it doesn't exist.
+    var existingSourceSystemIdx = SourceSystems.findIndex((itm) => {return itm === message.SourceSystem})
+    if(existingSourceSystemIdx !== -1) {
+      SourceSystemPriorities[existingSourceSystemIdx] = message.Priority;
+    }
+    else {
+      SourceSystems.push(message.SourceSystem)
+      SourceSystemPriorities.push(message.Priority)
+    }
+
+    // Figure out properties. Don't update anything that was updated by a higher priority system.
+    SourceSystems.forEach((systemName,idx) => {
+      var systemPriority = SourceSystemPriorities[idx];
+      if(systemPriority <= message.Priority) return; // If we're higher priority, don't filter any props.
+
+      var systemProps = result.records[0].get('node').properties["SourceSystemProps_"+systemName]
+      systemProps.forEach((prop) => {
+        delete retVal.Properties[prop];
+      })
+    })
+
+    retVal.SourceSystems = SourceSystems;
+    retVal.SourceSystemPriorities = SourceSystemPriorities;
+    return retVal;
+  });
+}
+
 function handleMessage(message) {
   bot.changeState({state: "working"})
-  var query = getMergeQuery(message);
-  if(!query) return Promise.reject("Bad query from message.");
-
-  return bot.query(query.compile(),query.params())
-    .then(function(result) {
+  return checkTarget(message).then((queryProps) => {
+    var query = getMergeQuery(message, queryProps);
+    if(!query) return Promise.reject("Bad query from message.");
+  
+    return bot.query(query.compile(),query.params()).then(function(result) {
       bot.logger.info("Success for",message.NodeType,"message:",message.Name)
       bot.changeState({state: "idle"}) //TODO: Maybe this is a little premature. Might result in a 'false idle' state.
       return true;
     })
-    .catch(function(err) {
-      bot.logger.error("Failure for",message.NodeType,"message:",message.Name);
-      bot.logger.error(err.toString());
-      bot.changeState({state: "error",message: err.toString()})
-      return false;
-    })
+  }).catch(function(err) {
+    bot.logger.error("Failure for",message.NodeType,"message:",message.Name);
+    bot.logger.error(err.toString());
+    bot.changeState({state: "failed",message: err.toString()}) //TODO: We log and recover from these errors. Maybe don't set to an error state.
+    return false;
+  })
 }
 
 // Generates a CQL query from the validated message.
