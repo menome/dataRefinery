@@ -5,6 +5,7 @@
  */
 var bot = require('@menome/botframework')
 var Query = require('decypher').Query;
+var util = require('util');
 
 // This is like JSON.stringify, except property keys are printed without quotes around them
 // And we only include properties that are primitives.
@@ -13,18 +14,18 @@ function buildObjectStr(obj) {
 
   for(var p in obj) {
     if(typeof obj[p] === 'object' || typeof obj[p] === 'function') continue;
-    else if(typeof obj[p] == 'string') paramStrings.push(p + ': "'+obj[p]+'"');
-    else paramStrings.push(p + ': '+obj[p]+'');
+    else if(typeof obj[p] == 'string') paramStrings.push(util.format('%s: "%s"',p,obj[p]));
+    else paramStrings.push(util.format('%s: %s',p,obj[p]));
   }
 
-  return '{' + paramStrings.join(',') + '}';
+  return util.format('{%s}',paramStrings.join(','));
 }
 
 function getMergeQuery(message,queryProps) {
   var query = new Query();
   var objectStr = buildObjectStr(message.ConformedDimensions);
   if(objectStr === "{}") return false; // Don't run the query if our conformedDimensions is too small. (Should be caught in the schema. This is just paranoia.)
-  var mergeStmt = "(node:Card:"+message.NodeType+" " + objectStr + ")";
+  var mergeStmt = util.format("(node:Card:%s %s)",message.NodeType, objectStr);
   query.merge(mergeStmt);
 
   query.add("ON CREATE SET node.Uuid = {newUuid}");
@@ -35,12 +36,12 @@ function getMergeQuery(message,queryProps) {
   if(Array.isArray(message.Connections)) {
     message.Connections.forEach((itm,idx) => {
       var nodeName = "node"+idx;
-      var newNodeStmt = "("+nodeName+":Card:"+itm.NodeType+" "+buildObjectStr(itm.ConformedDimensions)+")"
+      var newNodeStmt = util.format("(%s:Card:%s %s)",nodeName,itm.NodeType,buildObjectStr(itm.ConformedDimensions))
       query.merge(newNodeStmt);
-      query.add("ON CREATE SET "+nodeName+".Uuid = {"+nodeName+"_newUuid}, "+nodeName+".PendingMerge = true");
-      query.set(nodeName+" += {"+nodeName+"_nodeParams}");
-      query.merge("(node)"+(itm.ForwardRel?"":"<")+"-["+nodeName+"_rel:"+itm.RelType+"]-"+(itm.ForwardRel?">":"")+"("+nodeName+")")
-      query.set(nodeName+"_rel += {"+nodeName+"_relProps}")
+      query.add(util.format("ON CREATE SET %s.Uuid = {%s_newUuid}, %s.PendingMerge = true",nodeName,nodeName,nodeName));
+      query.set(util.format("%s += {%s_nodeParams}",nodeName,nodeName));
+      query.merge(util.format("(node)%s-[%s_rel:%s]-%s(%s)",(itm.ForwardRel?"":"<"),nodeName,itm.RelType,(itm.ForwardRel?">":""),nodeName))
+      query.set(util.format("%s_rel += {%s_relProps}",nodeName, nodeName))
 
       var itmParams = Object.assign({},itm.Properties,itm.ConformedDimensions)
       itmParams.Name = itm.Name;
