@@ -38,8 +38,7 @@ function getMergeQuery(message,queryProps) {
       var nodeName = "node"+idx;
       var newNodeStmt = util.format("(%s:Card:%s %s)",nodeName,itm.NodeType,buildObjectStr(itm.ConformedDimensions))
       query.merge(newNodeStmt);
-      query.add(util.format("ON CREATE SET %s.Uuid = {%s_newUuid}, %s.PendingMerge = true",nodeName,nodeName,nodeName));
-      query.set(util.format("%s += {%s_nodeParams}",nodeName,nodeName));
+      query.add(util.format("ON CREATE SET %s.Uuid = {%s_newUuid}, %s.PendingMerge = true, %s += {%s_nodeParams}",nodeName,nodeName,nodeName,nodeName,nodeName));
       query.merge(util.format("(node)%s-[%s_rel:%s]-%s(%s)",(itm.ForwardRel?"":"<"),nodeName,itm.RelType,(itm.ForwardRel?">":""),nodeName))
       query.set(util.format("%s_rel += {%s_relProps}",nodeName, nodeName))
 

@@ -52,6 +52,8 @@ Messages can be given a 'priority.' This is an integer. Higher priority messages
 Connections are a list of other nodes with conformed dimensions that we should merge on. 
 Each of these mirrors the top-level structure, but can not possess its own connections object.
 
+Also, properties specified on connected nodes (not relationships) connections will only be inserted into the graph if the target node does not already exist.
+
 ### Configuration
 
 Configuration is managed via [Mozilla Convict.](https://github.com/mozilla/node-convict). The Schema for config is part of our [bot framework.](https://github.com/menome/botframework/blob/master/src/config.js)
