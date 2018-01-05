@@ -15,6 +15,7 @@ COPY ./package.json package.json
 # Handle NPM Token Management. Requires an environment variable.
 ARG NPM_TOKEN
 COPY .npmrc-deploy .npmrc
+RUN "echo ${NPM_TOKEN}"
 
 # Install dependencies and generate production dist
 RUN npm install
