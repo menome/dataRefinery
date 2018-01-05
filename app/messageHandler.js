@@ -7,6 +7,18 @@ var bot = require('@menome/botframework')
 var Query = require('decypher').Query;
 var util = require('util');
 
+/* 
+ * This is an ephemeral list of the indices we know are in the DB right now.
+ * For fast merges we need to make sure that conformed dimensions have indices on them.
+ * But we don't want to keep track of indices via excessive state or config or anything complex like that.
+ * So instead, we just make sure that an index exists on each conformed dimension by querying the DB and
+ * adding it when we get the message.
+ * After that, we add it to this list, and never add it again as long as it's in this list.
+ * This list gets blown away every time the app restarts, so there will be a few redundant checks. 
+ * Shouldn't really be a big performance hit, as we'll only check each index once per mass import.
+ */
+var addedIndices = []
+
 // This is like JSON.stringify, except property keys are printed without quotes around them
 // And we only include properties that are primitives.
 function buildObjectStr(obj) {
@@ -118,16 +130,39 @@ function checkTarget(message) {
   });
 }
 
+// Adds indices for conformed dimensions
+function addIndices(message) {
+  var queryList = Object.keys(message.ConformedDimensions).map((prop,idx) => {
+    // Check if we even need this index.
+    if(addedIndices.indexOf(prop) !== -1) {
+      return Promise.resolve(true);
+    }
+
+    return bot.query("CREATE INDEX ON :Card("+prop+")").then((result) => {
+      addedIndices.push(prop);
+    }).catch((err) => {
+      if(err.code === "Neo.ClientError.Schema.ConstraintAlreadyExists")
+        return true; // Swallow this. Throws if there's a uniqueness constraint on what we're indexing.
+      throw err;
+    })
+  });
+  return Promise.all(queryList);
+}
+
 function handleMessage(message) {
   bot.changeState({state: "working"})
-  return checkTarget(message).then((queryProps) => {
-    var query = getMergeQuery(message, queryProps);
-    if(!query) return Promise.reject("Bad query from message.");
-  
-    return bot.query(query.compile(),query.params()).then(function(result) {
-      bot.logger.info("Success for",message.NodeType,"message:",message.Name)
-      bot.changeState({state: "idle"}) //TODO: Maybe this is a little premature. Might result in a 'false idle' state.
-      return true;
+
+  // Try adding our indices.
+  return addIndices(message).then(() => {
+    return checkTarget(message).then((queryProps) => {
+      var query = getMergeQuery(message, queryProps);
+      if(!query) return Promise.reject("Bad query from message.");
+    
+      return bot.query(query.compile(),query.params()).then(function(result) {
+        bot.logger.info("Success for",message.NodeType,"message:",message.Name)
+        bot.changeState({state: "idle"}) //TODO: Maybe this is a little premature. Might result in a 'false idle' state.
+        return true;
+      })
     })
   }).catch(function(err) {
     bot.logger.error("Failure for",message.NodeType,"message:",message.Name);
