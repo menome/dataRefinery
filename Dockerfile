@@ -12,9 +12,9 @@ WORKDIR /srv/app
 # Add build file
 COPY ./package.json package.json
 
-# Handle NPM Token Management
+# Handle NPM Token Management. Requires an environment variable.
 ARG NPM_TOKEN
-COPY .npmrc .npmrc
+COPY .npmrc-deploy .npmrc
 
 # Install dependencies and generate production dist
 RUN npm install
