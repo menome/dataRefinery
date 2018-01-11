@@ -134,6 +134,7 @@ function checkTarget(message) {
 // Use composite indices.
 function addIndices(message) {
   var indices = Object.keys(message.ConformedDimensions);
+  var nodeType = message.NodeType;
 
   // Check if we even need this index.
   if(addedIndices.indexOf(indices.join()) !== -1) {
@@ -141,7 +142,9 @@ function addIndices(message) {
   }
 
   return bot.query("CREATE INDEX ON :Card("+indices.join(',')+")").then((result) => {
-    addedIndices.push(indices.join());
+    return bot.query("CREATE INDEX ON :"+message.NodeType+"("+indices.join(',')+")").then((result) => {
+      return addedIndices.push(indices.join());
+    })
   }).catch((err) => {
     if(err.code === "Neo.ClientError.Schema.ConstraintAlreadyExists")
       return true; // Swallow this. Throws if there's a uniqueness constraint on what we're indexing.
