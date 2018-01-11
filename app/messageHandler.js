@@ -131,22 +131,22 @@ function checkTarget(message) {
 }
 
 // Adds indices for conformed dimensions
+// Use composite indices.
 function addIndices(message) {
-  var queryList = Object.keys(message.ConformedDimensions).map((prop,idx) => {
-    // Check if we even need this index.
-    if(addedIndices.indexOf(prop) !== -1) {
-      return Promise.resolve(true);
-    }
+  var indices = Object.keys(message.ConformedDimensions);
 
-    return bot.query("CREATE INDEX ON :Card("+prop+")").then((result) => {
-      addedIndices.push(prop);
-    }).catch((err) => {
-      if(err.code === "Neo.ClientError.Schema.ConstraintAlreadyExists")
-        return true; // Swallow this. Throws if there's a uniqueness constraint on what we're indexing.
-      throw err;
-    })
-  });
-  return Promise.all(queryList);
+  // Check if we even need this index.
+  if(addedIndices.indexOf(indices.join()) !== -1) {
+    return Promise.resolve(true);
+  }
+
+  return bot.query("CREATE INDEX ON :Card("+indices.join(',')+")").then((result) => {
+    addedIndices.push(indices.join());
+  }).catch((err) => {
+    if(err.code === "Neo.ClientError.Schema.ConstraintAlreadyExists")
+      return true; // Swallow this. Throws if there's a uniqueness constraint on what we're indexing.
+    throw err;
+  })
 }
 
 function handleMessage(message) {
