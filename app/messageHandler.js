@@ -170,6 +170,7 @@ function handleMessage(message) {
   }).catch(function(err) {
     bot.logger.error("Failure for",message.NodeType,"message:",message.Name);
     bot.logger.error(err.toString());
+    bot.logger.error(err.stack);
     bot.changeState({state: "failed",message: err.toString()}) //TODO: We log and recover from these errors. Maybe don't set to an error state.
     return false;
   })
