@@ -34,10 +34,11 @@ function buildObjectStr(obj) {
 }
 
 function getMergeQuery(message,queryProps) {
+  var labelType = message.Label ? message.Label : "Card";
   var query = new Query();
   var objectStr = buildObjectStr(message.ConformedDimensions);
   if(objectStr === "{}") return false; // Don't run the query if our conformedDimensions is too small. (Should be caught in the schema. This is just paranoia.)
-  var mergeStmt = util.format("(node:Card:%s %s)",message.NodeType, objectStr);
+  var mergeStmt = util.format("(node:"+labelType+":%s %s)",message.NodeType, objectStr);
   query.merge(mergeStmt);
 
   query.add("ON CREATE SET node.Uuid = {newUuid}");
@@ -48,7 +49,7 @@ function getMergeQuery(message,queryProps) {
   if(Array.isArray(message.Connections)) {
     message.Connections.forEach((itm,idx) => {
       var nodeName = "node"+idx;
-      var newNodeStmt = util.format("(%s:Card:%s %s)",nodeName,itm.NodeType,buildObjectStr(itm.ConformedDimensions))
+      var newNodeStmt = util.format("(%s:"+labelType+":%s %s)",nodeName,itm.NodeType,buildObjectStr(itm.ConformedDimensions))
       query.merge(newNodeStmt);
       query.add(util.format("ON CREATE SET %s.Uuid = {%s_newUuid}, %s.PendingMerge = true, %s += {%s_nodeParams}",nodeName,nodeName,nodeName,nodeName,nodeName));
       query.merge(util.format("(node)%s-[%s_rel:%s]-%s(%s)",(itm.ForwardRel?"":"<"),nodeName,itm.RelType,(itm.ForwardRel?">":""),nodeName))
@@ -82,7 +83,8 @@ function getMergeQuery(message,queryProps) {
 function checkTarget(message) {
   // If we don't have a source system or a priority just go for it.
   if(!message.SourceSystem || !message.Priority) return Promise.resolve({});
-  
+  var labelType = message.Label ? message.Label : "Card";
+
   var retVal = { // If we don't encounter a node to merge with, this is our initial priority info.
     SourceSystems: [message.SourceSystem],
     SourceSystemPriorities: [message.Priority],
@@ -92,7 +94,7 @@ function checkTarget(message) {
   var query = new Query();
   var objectStr = buildObjectStr(message.ConformedDimensions);
   if(objectStr === "{}") return Promise.resolve({});; // Don't run the query if our conformedDimensions is too small. (Should be caught in the schema. This is just paranoia.)
-  query.match("(node:Card:"+message.NodeType+" "+objectStr+")")
+  query.match("(node:"+labelType+":"+message.NodeType+" "+objectStr+")")
   query.return("node")
 
   return bot.query(query.compile(), query.params()).then((result) => {
@@ -135,13 +137,14 @@ function checkTarget(message) {
 function addIndices(message) {
   var indices = Object.keys(message.ConformedDimensions);
   var nodeType = message.NodeType;
+  var labelType = message.Label ? message.Label : "Card";
 
   // Check if we even need this index.
   if(addedIndices.indexOf(indices.join()) !== -1) {
     return Promise.resolve(true);
   }
 
-  return bot.query("CREATE INDEX ON :Card("+indices.join(',')+")").then((result) => {
+  return bot.query("CREATE INDEX ON :"+labelType+"("+indices.join(',')+")").then((result) => {
     return bot.query("CREATE INDEX ON :"+message.NodeType+"("+indices.join(',')+")").then((result) => {
       return addedIndices.push(indices.join());
     })
