@@ -48,8 +48,9 @@ function getMergeQuery(message,queryProps) {
   // TODO: Parameters should be subobjects in the main query params. This is not yet possible in neo4j.
   if(Array.isArray(message.Connections)) {
     message.Connections.forEach((itm,idx) => {
+      var connLabelType = itm.Label ? itm.Label : "Card";
       var nodeName = "node"+idx;
-      var newNodeStmt = util.format("(%s:"+labelType+":%s %s)",nodeName,itm.NodeType,buildObjectStr(itm.ConformedDimensions))
+      var newNodeStmt = util.format("(%s:"+connLabelType+":%s %s)",nodeName,itm.NodeType,buildObjectStr(itm.ConformedDimensions))
       query.merge(newNodeStmt);
       query.add(util.format("ON CREATE SET %s.Uuid = {%s_newUuid}, %s.PendingMerge = true, %s += {%s_nodeParams}",nodeName,nodeName,nodeName,nodeName,nodeName));
       query.merge(util.format("(node)%s-[%s_rel:%s]-%s(%s)",(itm.ForwardRel?"":"<"),nodeName,itm.RelType,(itm.ForwardRel?">":""),nodeName))
