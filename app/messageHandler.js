@@ -57,7 +57,7 @@ function getMergeQuery(message,queryProps) {
       query.set(util.format("%s_rel += {%s_relProps}",nodeName, nodeName))
 
       var itmParams = Object.assign({},itm.Properties,itm.ConformedDimensions)
-      itmParams.Name = itm.Name;
+      if(!!itm.Name) itmParams.Name = itm.Name;
       query.param(nodeName+"_newUuid", bot.genUuid());
       query.param(nodeName+"_nodeParams", itmParams);
       query.param(nodeName+"_relProps", itm.RelProps ? itm.RelProps : {})
@@ -66,9 +66,9 @@ function getMergeQuery(message,queryProps) {
 
   // Compile our top-level parameters.
   var compiledParams = Object.assign({},queryProps.Properties,message.ConformedDimensions)
-  compiledParams.Name = message.Name;
+  if(!!message.Name) compiledParams.Name = message.Name;
   compiledParams.PendingMerge = false;
-  compiledParams.AddedDate = new Date().toJSON();
+  compiledParams.TheLinkAddedDate = new Date().getTime();
   compiledParams.SourceSystems = queryProps.SourceSystems ? queryProps.SourceSystems : undefined;
   compiledParams.SourceSystemPriorities = queryProps.SourceSystemPriorities ? queryProps.SourceSystemPriorities : undefined;
 
