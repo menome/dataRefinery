@@ -36,6 +36,16 @@ This turns specifically formatted AMQP messages into neo4j graph updates.
       "ConformedDimensions": {
         "Code": "5"
       }
+    },
+    {
+      "Name": "theLink Product Team",
+      "NodeType": "Team",
+      "Label": "Facet",
+      "RelType": "HAS_FACET",
+      "ForwardRel": true,
+      "ConformedDimensions": {
+        "Code": "1337"
+      }
     }
   ]
 }
@@ -53,6 +63,8 @@ Connections are a list of other nodes with conformed dimensions that we should m
 Each of these mirrors the top-level structure, but can not possess its own connections object.
 
 Also, properties specified on connected nodes (not relationships) connections will only be inserted into the graph if the target node does not already exist.
+
+The final relationship links to a Facet node, which is not a card. This is the convention we use for theLink to attach cards to facets (a slightly more complicated version of tags) for easier filtering. The created node in neo4j will have the labels (:Facet:Team)
 
 ### Configuration
 
