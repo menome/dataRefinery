@@ -1,26 +1,26 @@
 /** 
- * Copyright (C) 2017 Menome Technologies Inc.  
+ * Copyright (C) 2018 Menome Technologies Inc.  
  * 
  * A microservice that takes specifically formatted JSON messages and turns them into graph updates.
  */
 "use strict";
-var bot = require('@menome/botframework')
-var messageHandler = require('./messageHandler');
-var config = require('./config');
+const Bot = require('@menome/botframework');
+const config = require("../config/config.json");
+const messageHandler = require("./messageHandler");
 
-// We only need to do this once. Bot is a singleton.
-bot.configure({
-  name: "theLink Data Refinery Service",
-  desc: "Converts sync messages into graph updates.",
-  logging: config.get('logging'),
-  port: config.get('port'),
-  rabbit: config.get('rabbit'),
-  neo4j: config.get('neo4j')
+// Define the bot itself.
+var bot = new Bot({
+  config: {
+    name: "theLink Data Refinery Service",
+    desc: "Converts sync messages into graph updates.",
+    ...config
+  }
 });
 
-// Listen on the Rabbit bus.
-bot.rabbitSubscribe('refineryQueue',messageHandler.handleMessage,"harvesterMessage");
+var mh = new messageHandler(bot);
 
-// Start the bot.
+// Listen on the Rabbit queue.
+bot.rabbit.addListener('refineryQueue',mh.handleMessage,"harvesterMessage");
+
 bot.start();
 bot.changeState({state: "idle"})

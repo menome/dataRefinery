@@ -6,7 +6,7 @@
   "repository": "https://github.com/menome",
   "license": "Commercial",
   "dependencies": {
-    "@menome/botframework": "^1.1.2",
+    "@menome/botframework": "^2.0.1",
     "ajv": "^5.2.3",
     "amqplib": "^0.5.1",
     "convict": "latest",
