@@ -163,7 +163,7 @@ module.exports = function(bot) {
     compiledParams.SourceSystemPriorities = queryProps.SourceSystemPriorities ? queryProps.SourceSystemPriorities : undefined;
   
 
-    var propList = Object.keys({...queryProps.Properties, ...queryProps.DateProperties}) 
+    var propList = Object.keys({...queryProps.Properties, ...message.DateProperties}) 
     if(message.SourceSystem) compiledParams["SourceSystemProps_"+message.SourceSystem] = propList
   
     query.params({nodeParams: compiledParams, newUuid: bot.genUuid()});
