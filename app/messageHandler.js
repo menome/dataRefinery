@@ -75,6 +75,27 @@ module.exports = function(bot) {
     // TODO: Parameters should be subobjects in the main query params. This is not yet possible in neo4j.
     if(Array.isArray(message.Connections)) {
       message.Connections.forEach((conn,idx) => {
+
+        // If we're inferring dates, do that here.
+        if(bot.config.get("inferDates")) {
+          if(!conn.DateProperties) conn.DateProperties = {};
+          Object.keys(conn.Properties).forEach((propkey) => {
+            if(!!isoDateRegExp.test(conn.Properties[propkey])) {
+              conn.DateProperties[propkey] = conn.Properties[propkey]
+              delete conn.Properties[propkey]
+            }
+          })
+
+          if(!conn.DateRelProps) conn.DateRelProps = {};
+          Object.keys(conn.RelProps).forEach((propkey) => {
+            if(!!isoDateRegExp.test(conn.RelProps[propkey])) {
+              conn.DateRelProps[propkey] = conn.RelProps[propkey]
+              delete conn.RelProps[propkey]
+            }
+          })
+        }
+
+
         var connLabelType = conn.Label ? conn.Label : "Card";
         var nodeName = "node"+idx;
         var newNodeStmt = util.format("(%s:"+connLabelType+":%s %s)",nodeName,conn.NodeType,buildObjectStr(conn.ConformedDimensions))
@@ -141,7 +162,9 @@ module.exports = function(bot) {
     compiledParams.SourceSystems = queryProps.SourceSystems ? queryProps.SourceSystems : undefined;
     compiledParams.SourceSystemPriorities = queryProps.SourceSystemPriorities ? queryProps.SourceSystemPriorities : undefined;
   
-    if(message.SourceSystem) compiledParams["SourceSystemProps_"+message.SourceSystem] = Object.keys(queryProps.Properties)
+
+    var propList = Object.keys({...queryProps.Properties, ...queryProps.DateProperties}) 
+    if(message.SourceSystem) compiledParams["SourceSystemProps_"+message.SourceSystem] = propList
   
     query.params({nodeParams: compiledParams, newUuid: bot.genUuid()});
   
