@@ -44,6 +44,13 @@ module.exports = function(bot) {
   
     query.add("ON CREATE SET node.Uuid = {newUuid}");
     query.set("node += {nodeParams}");
+    query.set("node.TheLinkAddedDate = datetime()")
+
+    if(!!message.DateProperties) {
+      Object.keys(message.DateProperties).forEach((param,idx) => {
+        query.set(util.format("node.%s = datetime($dateparam_%s)", param, idx), {["dateparam_"+idx]: message.DateProperties[param]})
+      })
+    }
   
     // Deletion of deletable properties. Happens after setting everything.
     if(!!message.DeleteProperties) {
@@ -68,21 +75,38 @@ module.exports = function(bot) {
         if(conn.DeleteRelationship === true) {
           query.add(util.format("DETACH DELETE %s_rel",nodeName));
         } 
-        else if(!!conn.DeleteRelProps) { // Deletion of relationship properties.
-          conn.DeleteRelProps.forEach((prop,idx) => {
-            query.add(util.format("REMOVE %s_rel.%s", nodeName, prop));
-          })
+        else {
+          // Handle any properties that must be parsed as dates.
+          if(!!conn.DateRelProps) {
+            Object.keys(conn.DateRelProps).forEach((param,idx) => {
+              query.set(util.format("%s_rel.%s = datetime($dateparam_rel_%s_%s)", nodeName, param, nodeName, idx), {["dateparam_rel_"+nodeName+"_"+idx]: conn.DateRelProps[param]})
+            })
+          }
+
+          if(!!conn.DeleteRelProps) { // Deletion of relationship properties.
+            conn.DeleteRelProps.forEach((prop,idx) => {
+              query.add(util.format("REMOVE %s_rel.%s", nodeName, prop));
+            })
+          }
         }
   
         // And if we're deleting the related node itself.
         if(conn.DeleteNode === true) {
           query.add(util.format("DETACH DELETE %s",nodeName));
         }
-        else if(!!conn.DeleteProperties) { // Deletion of related node properties.
-          conn.DeleteProperties.forEach((prop,idx) => {
-            query.add(util.format("REMOVE %s.%s", nodeName, prop));
-          })
+        else { // Deletion of related node properties.
+          if(!!conn.DateProperties) {
+            Object.keys(conn.DateProperties).forEach((param,idx) => {
+              query.set(util.format("%s.%s = datetime($dateparam_%s_%s)", nodeName, param, nodeName, idx), {["dateparam_"+nodeName+"_"+idx]: conn.DateProperties[param]})
+            })
+          }
+          if(!!conn.DeleteProperties) {
+            conn.DeleteProperties.forEach((prop,idx) => {
+              query.add(util.format("REMOVE %s.%s", nodeName, prop));
+            })
+          }
         }
+        
   
         // Query parameters.
         var itmParams = Object.assign({},conn.Properties,conn.ConformedDimensions)
@@ -102,7 +126,6 @@ module.exports = function(bot) {
     var compiledParams = Object.assign({},queryProps.Properties,message.ConformedDimensions)
     if(!!message.Name) compiledParams.Name = message.Name;
     compiledParams.PendingMerge = false;
-    compiledParams.TheLinkAddedDate = new Date().getTime();
     compiledParams.SourceSystems = queryProps.SourceSystems ? queryProps.SourceSystems : undefined;
     compiledParams.SourceSystemPriorities = queryProps.SourceSystemPriorities ? queryProps.SourceSystemPriorities : undefined;
   
