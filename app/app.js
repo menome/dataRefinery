@@ -14,6 +14,14 @@ var bot = new Bot({
     name: "theLink Data Refinery Service",
     desc: "Converts sync messages into graph updates.",
     ...config
+  },
+  configSchema: {
+    inferDates: {
+      doc: "Should we try to infer whether strings are ISO dates, based on a regex?",
+      format: "Boolean",
+      default: false,
+      env: "INFER_DATES"
+    },
   }
 });
 

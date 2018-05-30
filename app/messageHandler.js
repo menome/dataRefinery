@@ -6,6 +6,7 @@
  */
 var Query = require('decypher').Query;
 var util = require('util');
+const isoDateRegExp = new RegExp(/^(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))$/);
 
 module.exports = function(bot) {
   /* 
@@ -45,6 +46,17 @@ module.exports = function(bot) {
     query.add("ON CREATE SET node.Uuid = {newUuid}");
     query.set("node += {nodeParams}");
     query.set("node.TheLinkAddedDate = datetime()")
+
+    // If we're inferring dates, do that here.
+    if(bot.config.get("inferDates")) {
+      if(!message.DateProperties) message.DateProperties = {};
+      Object.keys(message.Properties).forEach((propkey) => {
+        if(!!isoDateRegExp.test(message.Properties[propkey])) {
+          message.DateProperties[propkey] = message.Properties[propkey]
+          delete message.Properties[propkey]
+        }
+      })
+    }
 
     if(!!message.DateProperties) {
       Object.keys(message.DateProperties).forEach((param,idx) => {
@@ -145,7 +157,7 @@ module.exports = function(bot) {
     var retVal = { // If we don't encounter a node to merge with, this is our initial priority info.
       SourceSystems: [message.SourceSystem],
       SourceSystemPriorities: [message.Priority],
-      Properties: message.Properties
+      Properties: message.Properties,
     }
   
     var query = new Query();
@@ -180,6 +192,7 @@ module.exports = function(bot) {
         var systemProps = result.records[0].get('node').properties["SourceSystemProps_"+systemName]
         systemProps.forEach((prop) => {
           delete retVal.Properties[prop];
+          delete retVal.DateProperties[prop];
         })
       })
   
