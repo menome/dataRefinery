@@ -79,6 +79,7 @@ module.exports = function(bot) {
         // If we're inferring dates, do that here.
         if(bot.config.get("inferDates")) {
           if(!conn.DateProperties) conn.DateProperties = {};
+          if(!conn.Properties) conn.Properties = {};
           Object.keys(conn.Properties).forEach((propkey) => {
             if(!!isoDateRegExp.test(conn.Properties[propkey])) {
               conn.DateProperties[propkey] = conn.Properties[propkey]
@@ -87,6 +88,7 @@ module.exports = function(bot) {
           })
 
           if(!conn.DateRelProps) conn.DateRelProps = {};
+          if(!conn.RelProps) conn.RelProps = {};
           Object.keys(conn.RelProps).forEach((propkey) => {
             if(!!isoDateRegExp.test(conn.RelProps[propkey])) {
               conn.DateRelProps[propkey] = conn.RelProps[propkey]
@@ -213,10 +215,12 @@ module.exports = function(bot) {
         if(systemPriority <= message.Priority) return; // If we're higher priority, don't filter any props.
   
         var systemProps = result.records[0].get('node').properties["SourceSystemProps_"+systemName]
-        systemProps.forEach((prop) => {
-          delete retVal.Properties[prop];
-          delete retVal.DateProperties[prop];
-        })
+        if(systemProps) {
+          systemProps.forEach((prop) => {
+            delete retVal.Properties[prop];
+            delete retVal.DateProperties[prop];
+          })
+        }
       })
   
       retVal.SourceSystems = SourceSystems;
