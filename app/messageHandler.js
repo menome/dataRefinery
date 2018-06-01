@@ -215,10 +215,9 @@ module.exports = function(bot) {
         if(systemPriority <= message.Priority) return; // If we're higher priority, don't filter any props.
   
         var systemProps = result.records[0].get('node').properties["SourceSystemProps_"+systemName]
-        if(systemProps) {
+        if(Array.isArray(systemProps)) {
           systemProps.forEach((prop) => {
             delete retVal.Properties[prop];
-            delete retVal.DateProperties[prop];
           })
         }
       })
