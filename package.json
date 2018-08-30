@@ -9,13 +9,13 @@
     "@menome/botframework": "^2.1.4",
     "ajv": "^5.2.3",
     "amqplib": "^0.5.1",
-    "convict": "latest",
+    "convict": "^4.3.2",
     "decypher": "^0.13.0",
     "express": "^4.16.2",
-    "forever": "latest",
+    "forever": "^0.15.3",
     "neo4j-driver": "^1.6.1",
     "request": "^2.83.0",
-    "uuid": "latest"
+    "uuid": "^3.3.2"
   },
   "devDependencies": {
     "chai": "^4.1.2",
