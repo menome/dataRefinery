@@ -13,7 +13,7 @@
     "decypher": "^0.13.0",
     "express": "^4.16.2",
     "forever": "^0.15.3",
-    "neo4j-driver": "^1.7.0",
+    "neo4j-driver": "^1.7.6",
     "request": "^2.83.0",
     "uuid": "^3.3.2"
   },
@@ -21,7 +21,7 @@
     "chai": "^4.1.2",
     "mocha": "^3.5.3",
     "mock-require": "^2.0.1",
-    "nodemon": "^1.12.1"
+    "nodemon": "^1.19.2"
   },
   "scripts": {
     "start": "[ \"$NODE_ENV\" = \"production\" ] && npm run prod || npm run dev",
