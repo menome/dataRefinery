@@ -271,6 +271,11 @@ module.exports = function(bot) {
       bot.logger.error(err.toString());
       bot.logger.error(err.stack);
       bot.changeState({state: "failed",message: err.toString()}) //TODO: We log and recover from these errors. Maybe don't set to an error state.
+
+      // Requeue messages when Neo4j is down.
+      if(err.name === "Neo4jError" && (!err.code || err.code.startsWith("ServiceUnavailable") || err.code.startsWith("Neo.TransientError"))) {
+        return "requeue"
+      }
       return false;
     })
   }
