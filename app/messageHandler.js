@@ -261,15 +261,13 @@ module.exports = function(bot) {
         if(!query) return Promise.reject("Bad query from message.");
       
         return bot.neo4j.query(query.compile(),query.params()).then(function(result) {
-          bot.logger.info("Success for",message.NodeType,"message:",message.Name)
+          bot.logger.info("Success",{node_type:message.NodeType,message:message.Name})
           bot.changeState({state: "idle"}) //TODO: Maybe this is a little premature. Might result in a 'false idle' state.
           return true;
         })
       })
     }).catch(function(err) {
-      bot.logger.error("Failure for",message.NodeType,"message:",message.Name);
-      bot.logger.error(err.toString());
-      bot.logger.error(err.stack);
+      bot.logger.error("Failure",{node_type:message.NodeType,message:message.Name, error:err.toString(), stacktrace:err.stack})      
       bot.changeState({state: "failed",message: err.toString()}) //TODO: We log and recover from these errors. Maybe don't set to an error state.
 
       // Requeue messages when Neo4j is down.
