@@ -20,6 +20,8 @@ module.exports = function(bot) {
    * Shouldn't really be a big performance hit, as we'll only check each index once per mass import.
    */
   var addedIndices = [];
+  const batchSize = 100; // Process batches up to this size.
+  var currentBatch = [];
 
   // This is like JSON.stringify, except property keys are printed without quotes around them
   // And we only include properties that are primitives.
@@ -174,7 +176,7 @@ module.exports = function(bot) {
   }
   
   // Check before merging. This is for priority checking.
-  function checkTarget(message) {
+  function checkTarget(session, message) {
     // If we don't have a source system or a priority just go for it.
     if(!message.SourceSystem || !message.Priority) return Promise.resolve({});
     var labelType = message.Label ? message.Label : "Card";
@@ -191,7 +193,7 @@ module.exports = function(bot) {
     query.match("(node:"+labelType+":"+message.NodeType+" "+objectStr+")")
     query.return("node")
   
-    return bot.neo4j.query(query.compile(), query.params()).then((result) => {
+    return session.run(query.compile(), query.params()).then((result) => {
       if(result.records.length < 1) return retVal;
   
       var SourceSystems = result.records[0].get('node').properties.SourceSystems;
@@ -230,7 +232,7 @@ module.exports = function(bot) {
   
   // Adds indices for conformed dimensions
   // Use composite indices.
-  function addIndices(message) {
+  function addIndices(session, message) {
     var indices = Object.keys(message.ConformedDimensions);
     var nodeType = message.NodeType;
     var labelType = message.Label ? message.Label : "Card";
@@ -240,8 +242,8 @@ module.exports = function(bot) {
       return Promise.resolve(true);
     }
   
-    return bot.neo4j.query("CREATE INDEX ON :"+labelType+"("+indices.join(',')+")").then((result) => {
-      return bot.neo4j.query("CREATE INDEX ON :"+message.NodeType+"("+indices.join(',')+")").then((result) => {
+    return session.run("CREATE INDEX ON :"+labelType+"("+indices.join(',')+")").then((result) => {
+      return session.run("CREATE INDEX ON :"+message.NodeType+"("+indices.join(',')+")").then((result) => {
         return addedIndices.push(indices.join());
       })
     }).catch((err) => {
@@ -250,19 +252,20 @@ module.exports = function(bot) {
       throw err;
     })
   }
-  
+
+  // Handle a single message. Also handle batching.
   this.handleMessage = function(message) {
-    bot.changeState({state: "working"})
-  
+    var session = bot.neo4j.session();
+
     // Try adding our indices.
-    return addIndices(message).then(() => {
-      return checkTarget(message).then((queryProps) => {
+    return addIndices(session, message).then(() => {
+      return checkTarget(session, message).then((queryProps) => {
         var query = getMergeQuery(message, queryProps);
         if(!query) return Promise.reject("Bad query from message.");
       
         return bot.neo4j.query(query.compile(),query.params()).then(function(result) {          
           bot.logger.info(`Success for {message.NodeType} message: {message.Name}`,{rabbit_msg: message})
-          bot.changeState({state: "idle"}) //TODO: Maybe this is a little premature. Might result in a 'false idle' state.
+          session.close();
           return true;
         })
       })
@@ -270,6 +273,7 @@ module.exports = function(bot) {
       bot.logger.error("Failure",{rabbit_msg: message, error:err})      
       bot.changeState({state: "failed",message: err.toString()}) //TODO: We log and recover from these errors. Maybe don't set to an error state.
 
+      session.close();
       // Requeue messages when Neo4j is down.
       if(err.name === "Neo4jError" && (!err.code || err.code.startsWith("ServiceUnavailable") || err.code.startsWith("Neo.TransientError"))) {
         return "requeue"
@@ -277,5 +281,4 @@ module.exports = function(bot) {
       return false;
     })
   }
-
 }
