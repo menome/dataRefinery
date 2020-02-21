@@ -7,6 +7,7 @@
 var Query = require('decypher').Query;
 var util = require('util');
 const isoDateRegExp = new RegExp(/^(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))$/);
+const events = require('events');
 
 module.exports = function(bot) {
   /* 
@@ -20,8 +21,9 @@ module.exports = function(bot) {
    * Shouldn't really be a big performance hit, as we'll only check each index once per mass import.
    */
   var addedIndices = [];
-  const batchSize = 100; // Process batches up to this size.
+  const batchSize = bot.config.get("rabbit.prefetch"); // Process batches up to this size.
   var currentBatch = [];
+  const BatchCompletedEmitter = new events.EventEmitter();
 
   // This is like JSON.stringify, except property keys are printed without quotes around them
   // And we only include properties that are primitives.
@@ -176,7 +178,7 @@ module.exports = function(bot) {
   }
   
   // Check before merging. This is for priority checking.
-  function checkTarget(session, message) {
+  function checkTarget(transaction, message) {
     // If we don't have a source system or a priority just go for it.
     if(!message.SourceSystem || !message.Priority) return Promise.resolve({});
     var labelType = message.Label ? message.Label : "Card";
@@ -193,7 +195,7 @@ module.exports = function(bot) {
     query.match("(node:"+labelType+":"+message.NodeType+" "+objectStr+")")
     query.return("node")
   
-    return session.run(query.compile(), query.params()).then((result) => {
+    return transaction.run(query.compile(), query.params()).then((result) => {
       if(result.records.length < 1) return retVal;
   
       var SourceSystems = result.records[0].get('node').properties.SourceSystems;
@@ -232,9 +234,8 @@ module.exports = function(bot) {
   
   // Adds indices for conformed dimensions
   // Use composite indices.
-  function addIndices(session, message) {
+  function addIndices(transaction, message) {
     var indices = Object.keys(message.ConformedDimensions);
-    var nodeType = message.NodeType;
     var labelType = message.Label ? message.Label : "Card";
   
     // Check if we even need this index.
@@ -242,9 +243,9 @@ module.exports = function(bot) {
       return Promise.resolve(true);
     }
   
-    return session.run("CREATE INDEX ON :"+labelType+"("+indices.join(',')+")").then((result) => {
-      return session.run("CREATE INDEX ON :"+message.NodeType+"("+indices.join(',')+")").then((result) => {
-        return addedIndices.push(indices.join());
+    return transaction.run("CREATE INDEX ON :"+labelType+"("+indices.join(',')+")").then((result) => {
+      return transaction.run("CREATE INDEX ON :"+message.NodeType+"("+indices.join(',')+")").then((result) => {
+        return addedIndices.push(indices.join());handleMessageList
       })
     }).catch((err) => {
       if(err.code === "Neo.ClientError.Schema.ConstraintAlreadyExists")
@@ -253,32 +254,70 @@ module.exports = function(bot) {
     })
   }
 
-  // Handle a single message. Also handle batching.
-  this.handleMessage = function(message) {
+  // Processes a list of messages in a single DB transaction.
+  // Returns a list of results. Either 'true', 'false' or 'requeue' for each.
+  async function runTransaction(messageList) {
     var session = bot.neo4j.session();
 
-    // Try adding our indices.
-    return addIndices(session, message).then(() => {
-      return checkTarget(session, message).then((queryProps) => {
-        var query = getMergeQuery(message, queryProps);
-        if(!query) return Promise.reject("Bad query from message.");
-      
-        return bot.neo4j.query(query.compile(),query.params()).then(function(result) {          
-          bot.logger.info(`Success for {message.NodeType} message: {message.Name}`,{rabbit_msg: message})
-          session.close();
-          return true;
-        })
-      })
-    }).catch(function(err) {
-      bot.logger.error("Failure",{rabbit_msg: message, error:err})      
-      bot.changeState({state: "failed",message: err.toString()}) //TODO: We log and recover from these errors. Maybe don't set to an error state.
+    // We must update indices in a different transaction.
+    // Once we record all the indices already present this will be a no-op.
+    for(var i=0;i<messageList.length;i++) {
+      await addIndices(session, messageList[i])
+    }
 
-      session.close();
-      // Requeue messages when Neo4j is down.
-      if(err.name === "Neo4jError" && (!err.code || err.code.startsWith("ServiceUnavailable") || err.code.startsWith("Neo.TransientError"))) {
-        return "requeue"
+    const writeTxPromise = session.writeTransaction(async tx => {
+      let respList = [];
+      for(var i=0;i<messageList.length;i++) {
+        let message = messageList[i];
+        // Try adding our indices.
+        respList[i] = await checkTarget(tx, message).then((queryProps) => {
+          var query = getMergeQuery(message, queryProps);
+          if(!query) return Promise.reject("Bad query from message.");
+        
+          return tx.run(query.compile(),query.params()).then(function(result) {          
+            // bot.logger.info(`Success for {message.NodeType} message: {message.Name}`,{rabbit_msg: message})
+            return true;
+          })
+        }).catch(err => {
+          bot.logger.error("Failure",{rabbit_msg: message, error:err})      
+          // Requeue messages when Neo4j is down.
+          if(err.name === "Neo4jError" && (!err.code || err.code.startsWith("ServiceUnavailable") || err.code.startsWith("Neo.TransientError"))) {
+            return "requeue"
+          }
+          return false;
+        })
       }
-      return false;
+
+      return respList;
+    })
+    
+    return writeTxPromise.then(results => {
+      session.close();
+      BatchCompletedEmitter.emit('complete', results)
+      return results;
+    }).catch(err => {
+      bot.logger.error("Execution should never get here but here we are.", err);
+      session.close();
+    })
+  }
+
+  // Handle a single message. Also handle batching.
+  this.handleMessage = function(message) {
+    let idx = currentBatch.push(message);
+
+    // If we've hit our batch size in the queue, run the transaction.
+    if(idx >= batchSize) {
+      runTransaction(currentBatch);
+    }
+
+    // Either way, listen for the batch completion event.
+    return new Promise((resolve) => {
+      let eventFunc = function(resultList) {
+        BatchCompletedEmitter.removeListener('complete', eventFunc)
+        return resolve(resultList[idx]);
+      }
+
+      BatchCompletedEmitter.on('complete', eventFunc)
     })
   }
 }

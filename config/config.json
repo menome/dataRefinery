@@ -4,14 +4,14 @@
     "enable": true,
     "url": "bolt://localhost",
     "user": "neo4j",
-    "pass": "graphPaper!"
+    "pass": "CodaGlenBaronyMonk"
   },
   "rabbit": {
     "enable": true,
-    "url": "amqp://rabbitmq:rabbitmq@localhost:5672?heartbeat=3600",
+    "url": "amqp://rabbitmq:CodaGlenBaronyMonk@localhost:5672?heartbeat=3600",
     "routingKey": "syncevents.harvester.updates.*",
     "exchange": "syncevents",
     "exchangeType": "topic",
-    "prefetch": 1
+    "prefetch": 300
   }
 }
