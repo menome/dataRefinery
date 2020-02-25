@@ -23,6 +23,11 @@ module.exports = function(bot) {
   var addedIndices = [];
   const batchSize = bot.config.get("rabbit.prefetch"); // Process batches up to this size.
   var currentBatch = [];
+  const batchTimeout = setInterval(() => {
+    if(currentBatch.length > 0) {
+      runTransaction(currentBatch)
+    }
+  }, 5000);
   const BatchCompletedEmitter = new events.EventEmitter();
   BatchCompletedEmitter.setMaxListeners(batchSize);
 
@@ -174,7 +179,6 @@ module.exports = function(bot) {
     if(message.SourceSystem) compiledParams["SourceSystemProps_"+message.SourceSystem] = propList
   
     query.params({nodeParams: compiledParams, newUuid: bot.genUuid()});
-  
     return query;
   }
   
@@ -308,6 +312,7 @@ module.exports = function(bot) {
 
   // Handle a single message. Also handle batching.
   this.handleMessage = function(message) {
+    batchTimeout.refresh(); // We refresh the timeout here.
     let idx = currentBatch.push(message);
 
     // If we've hit our batch size in the queue, run the transaction.
