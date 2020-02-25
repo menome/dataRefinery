@@ -22,6 +22,12 @@ var bot = new Bot({
       default: false,
       env: "INFER_DATES"
     },
+    skipPriorityCheck: {
+      doc: "Should we skip priority checking and source system property mapping?",
+      format: "Boolean",
+      default: false,
+      env: "SKIP_PRIORITY_CHECK"
+    }
   }
 });
 

@@ -12,6 +12,8 @@
     "routingKey": "syncevents.harvester.updates.*",
     "exchange": "syncevents",
     "exchangeType": "topic",
-    "prefetch": 300
-  }
+    "prefetch": 10
+  },
+  "inferDates": true,
+  "skipPriorityCheck": true
 }

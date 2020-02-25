@@ -24,6 +24,7 @@ module.exports = function(bot) {
   const batchSize = bot.config.get("rabbit.prefetch"); // Process batches up to this size.
   var currentBatch = [];
   const BatchCompletedEmitter = new events.EventEmitter();
+  BatchCompletedEmitter.setMaxListeners(batchSize);
 
   // This is like JSON.stringify, except property keys are printed without quotes around them
   // And we only include properties that are primitives.
@@ -179,15 +180,19 @@ module.exports = function(bot) {
   
   // Check before merging. This is for priority checking.
   function checkTarget(transaction, message) {
-    // If we don't have a source system or a priority just go for it.
-    if(!message.SourceSystem || !message.Priority) return Promise.resolve({});
-    var labelType = message.Label ? message.Label : "Card";
-  
+    if(!message.SourceSystem || !message.Priority || bot.config.get("skipPriorityCheck")) {
+      return Promise.resolve({
+        Properties: message.Properties
+      });
+    }
+
     var retVal = { // If we don't encounter a node to merge with, this is our initial priority info.
       SourceSystems: [message.SourceSystem],
       SourceSystemPriorities: [message.Priority],
       Properties: message.Properties,
     }
+
+    var labelType = message.Label ? message.Label : "Card";
   
     var query = new Query();
     var objectStr = buildObjectStr(message.ConformedDimensions);
@@ -245,7 +250,7 @@ module.exports = function(bot) {
   
     return transaction.run("CREATE INDEX ON :"+labelType+"("+indices.join(',')+")").then((result) => {
       return transaction.run("CREATE INDEX ON :"+message.NodeType+"("+indices.join(',')+")").then((result) => {
-        return addedIndices.push(indices.join());handleMessageList
+        return addedIndices.push(indices.join());
       })
     }).catch((err) => {
       if(err.code === "Neo.ClientError.Schema.ConstraintAlreadyExists")
@@ -275,7 +280,6 @@ module.exports = function(bot) {
           if(!query) return Promise.reject("Bad query from message.");
         
           return tx.run(query.compile(),query.params()).then(function(result) {          
-            // bot.logger.info(`Success for {message.NodeType} message: {message.Name}`,{rabbit_msg: message})
             return true;
           })
         }).catch(err => {
@@ -293,6 +297,7 @@ module.exports = function(bot) {
     
     return writeTxPromise.then(results => {
       session.close();
+      bot.logger.info("Completed batch of " + results.length);
       BatchCompletedEmitter.emit('complete', results)
       return results;
     }).catch(err => {
@@ -313,11 +318,11 @@ module.exports = function(bot) {
     // Either way, listen for the batch completion event.
     return new Promise((resolve) => {
       let eventFunc = function(resultList) {
-        BatchCompletedEmitter.removeListener('complete', eventFunc)
+        currentBatch = [];
         return resolve(resultList[idx]);
       }
 
-      BatchCompletedEmitter.on('complete', eventFunc)
+      BatchCompletedEmitter.once('complete', eventFunc)
     })
   }
 }
