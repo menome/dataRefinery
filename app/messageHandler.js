@@ -289,7 +289,7 @@ module.exports = function(bot) {
         }).catch(err => {
           bot.logger.error("Failure",{rabbit_msg: message, error:err})      
           // Requeue messages when Neo4j is down.
-          if(err.name === "Neo4jError" && (!err.code || err.code.startsWith("ServiceUnavailable") || err.code.startsWith("Neo.TransientError"))) {
+          if(err.name === "Neo4jError" && (!err.code || err.code.startsWith("ServiceUnavailable") || err.code == "N/A" || err.code.startsWith("Neo.TransientError"))) {
             return "requeue"
           }
           return false;
