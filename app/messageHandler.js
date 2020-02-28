@@ -23,11 +23,7 @@ module.exports = function(bot) {
   var addedIndices = [];
   const batchSize = bot.config.get("rabbit.prefetch"); // Process batches up to this size.
   var currentBatch = [];
-  const batchTimeout = setInterval(() => {
-    if(currentBatch.length > 0) {
-      runTransaction(currentBatch)
-    }
-  }, 5000);
+  var batchTimeout = null; // A setTimeout() that runs a half-full batch if the queue is empty.
   const BatchCompletedEmitter = new events.EventEmitter();
   BatchCompletedEmitter.setMaxListeners(batchSize);
 
@@ -266,6 +262,12 @@ module.exports = function(bot) {
   // Processes a list of messages in a single DB transaction.
   // Returns a list of results. Either 'true', 'false' or 'requeue' for each.
   async function runTransaction(messageList) {
+    // If we've got a timeout pending, get rid of it.
+    if(batchTimeout && !batchTimeout._destroyed) {
+      clearTimeout(batchTimeout);
+      batchTimeout = null;
+    }
+
     var session = bot.neo4j.session();
 
     // We must update indices in a different transaction.
@@ -274,6 +276,7 @@ module.exports = function(bot) {
       await addIndices(session, messageList[i])
     }
 
+    bot.logger.info("Started batch of " + messageList.length);
     const writeTxPromise = session.writeTransaction(async tx => {
       let respList = [];
       for(var i=0;i<messageList.length;i++) {
@@ -287,7 +290,7 @@ module.exports = function(bot) {
             return true;
           })
         }).catch(err => {
-          bot.logger.error("Failure",{rabbit_msg: message, error:err})      
+          bot.logger.error("Failure",{messageNum: i, error:err})      
           // Requeue messages when Neo4j is down.
           if(err.name === "Neo4jError" && (!err.code || err.code.startsWith("ServiceUnavailable") || err.code == "N/A" || err.code.startsWith("Neo.TransientError"))) {
             return "requeue"
@@ -312,8 +315,16 @@ module.exports = function(bot) {
 
   // Handle a single message. Also handle batching.
   this.handleMessage = function(message) {
-    batchTimeout.refresh(); // We refresh the timeout here.
     let idx = currentBatch.push(message);
+
+    // If this is our first message,
+    // Set a timeout. In 10000ms run the batch.
+    if(batchTimeout === null) {
+      batchTimeout = setTimeout(() => {
+        bot.logger.info("Running batch due to queue timeout.");
+        runTransaction(currentBatch);
+      }, 10000);
+    }
 
     // If we've hit our batch size in the queue, run the transaction.
     if(idx >= batchSize) {
