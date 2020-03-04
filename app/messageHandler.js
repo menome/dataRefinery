@@ -49,8 +49,8 @@ module.exports = function(bot) {
     var mergeStmt = util.format("(node:"+labelType+":%s %s)",message.NodeType, objectStr);
     query.merge(mergeStmt);
   
-    query.add("ON CREATE SET node.Uuid = {newUuid}");
-    query.set("node += {nodeParams}");
+    query.add("ON CREATE SET node.Uuid = $newUuid");
+    query.set("node += $nodeParams");
     query.set("node.TheLinkAddedDate = datetime()")
 
     // If we're inferring dates, do that here.
@@ -108,9 +108,9 @@ module.exports = function(bot) {
         var nodeName = "node"+idx;
         var newNodeStmt = util.format("(%s:"+connLabelType+":%s %s)",nodeName,conn.NodeType,buildObjectStr(conn.ConformedDimensions))
         query.merge(newNodeStmt);
-        query.add(util.format("ON CREATE SET %s.Uuid = {%s_newUuid}, %s.PendingMerge = true",nodeName,nodeName,nodeName));
+        query.add(util.format("ON CREATE SET %s.Uuid = $%s_newUuid, %s.PendingMerge = true",nodeName,nodeName,nodeName));
         query.merge(util.format("(node)%s-[%s_rel:%s]-%s(%s)",(conn.ForwardRel?"":"<"),nodeName,conn.RelType,(conn.ForwardRel?">":""),nodeName))
-        query.set(util.format("%s_rel += {%s_relProps}, %s += {%s_nodeParams}",nodeName, nodeName,nodeName,nodeName))
+        query.set(util.format("%s_rel += $%s_relProps, %s += $%s_nodeParams",nodeName, nodeName,nodeName,nodeName))
   
         // Deletion of relationship itself.
         if(conn.DeleteRelationship === true) {
@@ -253,7 +253,7 @@ module.exports = function(bot) {
         return addedIndices.push(indices.join());
       })
     }).catch((err) => {
-      if(err.code === "Neo.ClientError.Schema.ConstraintAlreadyExists")
+      if(err.code === "Neo.ClientError.Schema.ConstraintAlreadyExists" || err.code === "Neo.ClientError.Schema.EquivalentSchemaRuleAlreadyExists")
         return true; // Swallow this. Throws if there's a uniqueness constraint on what we're indexing.
       throw err;
     })

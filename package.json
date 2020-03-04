@@ -1,7 +1,7 @@
 {
   "name": "datarefinery",
   "private": true,
-  "version": "1.3.3",
+  "version": "1.4.0",
   "description": "Turns specifically formatted RMQ messages into neo4j graph updates",
   "repository": "https://github.com/menome",
   "license": "Commercial",
